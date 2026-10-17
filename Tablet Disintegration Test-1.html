@@ -1,0 +1,814 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!-- Tablet Disintegration Test: built on the 3D lab template (design system + engine unchanged) -->
+<title>Tablet Disintegration Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+
+/* ---- design tokens: dark by default, light when the device prefers it ---- */
+:root{--ink:#e9f1ef;--panel:rgba(14,22,25,.92);--line:#34535a;--acc:#6fe0c5;--mut:#9db3b0;--hot:#e4572e;--bg:#0a1014;color-scheme:dark;box-sizing:border-box}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--ink:#152124;--panel:rgba(246,250,249,.95);--line:#b8cbc8;--acc:#0b7a68;--mut:#4d6663;--hot:#c2410c;--bg:#f0f4f3;color-scheme:light}}
+:root[data-theme="light"]{--ink:#152124;--panel:rgba(246,250,249,.95);--line:#b8cbc8;--acc:#0b7a68;--mut:#4d6663;--hot:#c2410c;--bg:#f0f4f3;color-scheme:light}
+:root[data-theme="dark"]{--ink:#e9f1ef;--panel:rgba(14,22,25,.92);--line:#34535a;--acc:#6fe0c5;--mut:#9db3b0;--hot:#e4572e;--bg:#0a1014;color-scheme:dark}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Atkinson Hyperlegible',system-ui,sans-serif}
+canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;backdrop-filter:blur(8px);font-size:13px;line-height:1.45}
+h1{font-size:15px;margin:0 0 6px;text-wrap:balance}h2{font-size:12px;margin:0 0 6px;color:var(--acc);text-transform:uppercase;letter-spacing:.5px}.lead{margin:0 0 8px;color:var(--mut);font-size:12px}
+sup{font-size:.72em;line-height:0}
+#steps{top:calc(12px + env(safe-area-inset-top,0px));left:12px;width:min(320px,calc(100vw - 24px));max-height:calc(100vh - 215px);overflow-y:auto}
+#steps ol{margin:6px 0;padding-left:20px}#steps li{margin-bottom:7px}#steps li span{display:block;font-weight:400;margin-top:2px}
+#steps li.cur{font-weight:700;color:var(--acc)}#steps li.cur span{color:var(--ink)}#steps li.done{color:var(--mut)}
+#tmsg{margin-top:8px;color:var(--acc);min-height:1.2em;font-weight:700;font-size:12px}
+#status{top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:280px;max-height:calc(100vh - 215px);overflow:auto}
+.tub{display:grid;grid-template-columns:auto 1fr auto;gap:1px 10px;font-size:11px;font-variant-numeric:tabular-nums;margin-bottom:6px}
+.tub .ok{color:var(--acc)}.tub .no{color:var(--mut)}
+#kit{font-size:11px;color:var(--mut);margin:4px 0 10px;line-height:1.5}
+#cnt{right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:min(420px,calc(100vw - 24px));display:none;max-height:calc(100vh - 150px);overflow-y:auto}
+body.cnt #cnt{display:block}body.cnt #status{display:none}
+#mbar,#tabs{display:none}
+#cc{width:100%;max-width:100%;aspect-ratio:16/9;display:block;border-radius:6px;border:1px solid var(--line);background:var(--bg)}
+.row{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+#cnt button{padding:5px 8px;font-size:11px}
+#ans{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink)}
+#ctl{bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:12px;max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+button{font:inherit;color:var(--ink);background:rgba(127,127,127,.08);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:700}
+button:hover:not(:disabled){border-color:var(--acc)}button.cta{border-color:var(--acc);color:var(--acc);background:rgba(111,224,197,.12)}button.on{background:var(--acc);color:#04201a}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* tablets and narrow desktop windows */
+@media (min-width:761px) and (max-width:1100px){#steps{width:262px}#status,#cnt{width:300px}#ctl{gap:5px}#ctl button{padding:6px 9px;font-size:11px}}
+/* phones and narrow panes: 3D bench + bottom (portrait) or side (landscape) sheet with tabs */
+@media (max-width:760px) and (orientation:portrait),(max-height:540px) and (orientation:landscape){
+ #sheet{position:fixed;display:flex;flex-direction:column;background:var(--panel);backdrop-filter:blur(8px);z-index:2}
+ #sheet>.panel{position:static;inset:auto;width:auto;max-width:none;max-height:none;margin:0;border:0;border-radius:0;background:transparent;backdrop-filter:none}
+ #mbar{display:block;order:0;flex:none;padding:8px 14px 6px;border-bottom:1px solid var(--line)}
+ #mstep{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+ #mmsg{font-size:12.5px;font-weight:700;color:var(--acc);min-height:1.3em;line-height:1.35}
+ #ctl{order:1;flex:none;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;gap:6px;padding:8px 14px;border-bottom:1px solid var(--line);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ #ctl::-webkit-scrollbar{display:none}#ctl button{flex:none;min-height:40px;font-size:12px}
+ #tabs{display:flex;order:2;flex:none;border-bottom:1px solid var(--line)}
+ #tabs button{flex:1;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:10px 6px;color:var(--mut);min-height:42px}
+ #tabs button.on{color:var(--acc);border-bottom-color:var(--acc);background:transparent}#tabs button:disabled{opacity:.4;cursor:default}
+ #steps,#status,#cnt,body.cnt #cnt,body.cnt #status{order:3;display:none;flex:1;min-height:0;overflow-y:auto;padding:10px 14px}
+ body.tab-steps #steps,body.tab-status #status,body.tab-cnt #cnt{display:block}
+ #steps h1,#steps .lead,#steps #tmsg{display:none}
+ 
+}
+@media (max-width:760px) and (orientation:portrait){
+ canvas#scene{inset:auto;top:0;left:0;width:100%;height:44vh;height:44dvh}
+ #sheet{left:0;right:0;bottom:0;top:44vh;top:44dvh;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+ body.tab-cnt canvas#scene{height:26vh;height:26dvh}body.tab-cnt #sheet{top:26vh;top:26dvh}
+}
+@media (max-height:540px) and (orientation:landscape){
+ canvas#scene{inset:auto;top:0;left:0;width:56%;height:100%}
+ #sheet{top:0;bottom:0;right:0;width:44%;border-left:1px solid var(--line);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) 0}
+}
+/* ---- first-person game HUD ---- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:1}
+body:not(.fps) #hud>*{display:none}
+#cross{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+#cross::before,#cross::after{content:'';position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 2px rgba(0,0,0,.85)}
+#cross::before{left:10px;top:3px;width:2px;height:16px}#cross::after{top:10px;left:3px;height:2px;width:16px}
+#cross.aim::before,#cross.aim::after{background:#6fe0c5}
+#prompt{position:absolute;left:50%;top:calc(50% + 22px);transform:translateX(-50%);max-width:calc(100% - 24px);background:var(--panel);border:1px solid var(--line);padding:5px 10px;border-radius:6px;font-weight:700;font-size:13px;display:none;text-align:center}
+#obj{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top,0px));width:min(340px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.4}
+#obj b{display:block;color:var(--acc);text-transform:uppercase;letter-spacing:.4px}#obj span{display:block;color:var(--mut);margin-top:2px}
+#hmsg{margin-top:6px;font-weight:700;color:var(--ink)}body.nb #obj{display:none}
+#score{position:absolute;left:50%;transform:translateX(-50%);top:calc(12px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 6px 5px 12px;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;pointer-events:auto;white-space:nowrap}
+#score button{padding:4px 8px;font-size:11px}#spts{color:var(--acc)}
+#joy,#useB,#zoomB{display:none}
+body.touch #joy,body.touch #useB,body.touch #zoomB{display:block}
+#joy{position:absolute;left:16px;bottom:16px;width:108px;height:108px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:32px;top:32px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.7)}
+#useB{position:absolute;right:16px;bottom:22px;width:74px;height:74px;border-radius:50%;pointer-events:auto;font-size:15px;background:var(--acc);color:#04201a;border:0}
+#zoomB{position:absolute;right:100px;bottom:34px;pointer-events:auto}
+body.touch #score kbd{display:none}
+body.touch #score button{min-height:40px;padding:6px 11px;font-size:12.5px}body.touch #score{padding:4px 5px 4px 12px}
+body.touch #zoomB{min-height:46px;min-width:64px}body.mob #modeB .lg{display:none}
+body.filling #useB,body.filling #zoomB{display:none!important}
+body.touch:not(.mob) #score{left:auto;right:12px;transform:none}
+#toast{position:absolute;left:50%;top:calc(50% - 64px);transform:translateX(-50%);font-weight:700;font-size:20px;opacity:0;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#toast.go{animation:tst 1.2s ease-out}
+@keyframes tst{0%{opacity:0;transform:translate(-50%,8px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-28px)}}
+@media (prefers-reduced-motion:reduce){#toast.go{animation:none;opacity:1}}
+body.fps:not(.locked) canvas#scene{cursor:crosshair}
+body.fps #view,body.fps #fpB{display:none}
+body.fps:not(.nb):not(.mob) #steps,body.fps:not(.nb):not(.mob) #status,body.fps:not(.nb):not(.mob) #ctl{display:none}
+body.mob #obj{display:none}body.mob #score{font-size:12px;gap:7px;padding-left:10px}body.mob #slv{display:none}
+kbd{font:inherit;font-size:11px;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:rgba(127,127,127,.12)}
+.ovl{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,10,12,.55);backdrop-filter:blur(3px)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;width:min(460px,100%);max-height:calc(100% - 32px);overflow:auto;font-size:13px;line-height:1.5}
+.card h1{font-size:20px;margin:0 0 8px}.card p{margin:0 0 10px;color:var(--mut)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px;margin:10px 0 16px}
+.ovl[hidden]{display:none!important}.keys .k{white-space:nowrap;display:flex;gap:3px;align-items:flex-start}
+.tc{display:none}body.touch .tc{display:contents}body.touch .dk{display:none}.dk{display:contents}
+#rStars{font-size:36px;color:#f2b632;letter-spacing:4px;line-height:1.1}#rStars span{color:var(--line)}
+#rStats{margin:8px 0 14px}
+@media (max-width:760px) and (orientation:portrait){#hud{inset:auto;top:0;left:0;width:100%;height:44vh;height:44dvh}body.tab-cnt #hud{height:26vh;height:26dvh}body.tab-cnt #joy,body.tab-cnt #useB,body.tab-cnt #zoomB{display:none}}
+@media (max-height:540px) and (orientation:landscape){#hud{inset:auto;top:0;left:0;width:56%;height:100%}}
+/* phones during play: full-screen bench, panel folded into a strip until the notebook is opened */
+@media (max-width:760px) and (orientation:portrait),(max-height:540px) and (orientation:landscape){
+ body.fps:not(.nb) canvas#scene,body.fps:not(.nb) #hud{inset:0;top:0;left:0;width:100%;height:100%}
+ body.fps:not(.nb) #sheet{top:calc(68px + env(safe-area-inset-top,0px));left:50%;right:auto;bottom:auto;width:min(440px,calc(100% - 24px));transform:translateX(-50%);border:1px solid var(--line);border-radius:8px;padding:0;cursor:pointer}
+ body.fps:not(.nb) #sheet>:not(#mbar){display:none!important}
+ body.fps:not(.nb) #mbar{border-bottom:0;padding:6px 12px}
+ body.fps:not(.nb) #mmsg{font-size:12px}
+ body.fps:not(.nb) #mstep::after{content:' · tap for notebook';text-transform:none;letter-spacing:0}
+}
+/* ---- learning game: levels, quiz, badges ---- */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 6px}
+.lvl{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px;min-width:0}
+.lvl b{font-size:14px}.lvl small{color:var(--mut);font-weight:400;font-size:11px}.lvl .st{color:#f2b632;letter-spacing:1px;font-size:13px}.lvl .st i{color:var(--line);font-style:normal}
+.lvl.on{border:2px solid var(--acc);padding:9px;background:rgba(111,224,197,.12)}
+#lvDesc{color:var(--ink);font-size:12.5px;min-height:2.6em;margin:4px 0 12px}
+.bdg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 4px}
+.bd{border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font-size:10.5px;line-height:1.25;color:var(--mut);opacity:.55}
+.bd i{display:block;font-style:normal;font-size:18px;line-height:1.2;filter:grayscale(1)}
+.bd.got{opacity:1;color:var(--ink);border-color:var(--acc);background:rgba(111,224,197,.1)}.bd.got i{filter:none}
+.bd.new{animation:pop .6s ease-out}@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+#pWhere{font-size:11px;color:var(--mut);margin:2px 0 12px}
+details.ctl summary{cursor:pointer;font-weight:700;font-size:12px;color:var(--acc);margin-bottom:4px}
+#qTag{font-size:11px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+#qText{font-size:17px!important;line-height:1.35;text-wrap:balance}
+#qOpts{display:grid;gap:7px;margin:12px 0}
+#qOpts button{text-align:left;font-weight:400;font-size:13px;padding:10px 12px;line-height:1.35}
+#qOpts button.ok{border-color:#2fa36b;background:rgba(47,163,107,.18);font-weight:700}#qOpts button.bad{border-color:var(--hot);background:rgba(228,87,46,.15)}
+#qExp{font-size:12.5px;line-height:1.5;margin-bottom:10px}#qExp b{display:block;margin-bottom:2px}
+#rBadges .bdg{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+#hintB,#hintC{display:none}body.lv1 #hintB,body.lv1 #hintC{display:inline-block}
+body.lv2 #ff,body.lv2 #auto{display:none}
+body.lv2 #steps li span,body.lv2 #obj span{display:none}
+#slv{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
+@media (max-width:520px){.lvls{grid-template-columns:1fr}.lvl{flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}.lvl small{flex-basis:100%}.bdg{grid-template-columns:repeat(4,1fr)}}
+@media (prefers-reduced-motion:reduce){.bd.new{animation:none}}
+/* ---- results tables, form fields, fill gauge ---- */
+.itab{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+.itab th,.itab td{padding:3px 5px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.itab th{color:var(--mut);font-weight:700;font-size:10.5px}
+.itab th:nth-child(2),.itab td:nth-child(2){text-align:left}
+.itab tbody tr{cursor:pointer}.itab tbody tr:hover td{background:rgba(127,127,127,.08)}
+.itab tr.sel td{background:rgba(111,224,197,.16)}
+.tw{overflow-x:auto;margin-top:6px}
+.sst{display:grid;grid-template-columns:1fr auto auto;gap:3px 10px;font-size:11.5px;font-variant-numeric:tabular-nums;margin:4px 0}
+.sst span:nth-child(3n+2){font-weight:700;text-align:right}.sst .p{color:#2fa36b}.sst .f{color:var(--hot)}.sst .crit{color:var(--mut)}
+body.lv2 .crit{display:none!important}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mut);flex:1;min-width:96px}
+.fld input{font:inherit;font-size:13px;color:var(--ink);padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;min-width:0}
+#cnt button:disabled{opacity:.45;cursor:default}
+#cnt button.on{background:var(--acc);color:#04201a}
+#fg{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:11px;font-weight:700;text-align:center}
+#fg[hidden]{display:none}#fgc{width:90px;height:220px}#fgv{font-variant-numeric:tabular-nums;color:var(--mut);min-height:1.2em}
+#fg button{width:100%;min-height:40px}
+body.lv2 #fgv{visibility:hidden}
+@media (max-width:760px) and (orientation:portrait){#fg{top:calc(124px + env(safe-area-inset-top,0px));transform:none;right:10px;padding:6px}#fgc{width:56px;height:120px}}
+@media (max-height:540px) and (orientation:landscape){#fg{top:64px;transform:none;right:12px;padding:6px}body.nb #fg{right:calc(44% + 10px)}#fgc{width:56px;height:140px}}
+/* ---- UX: objective arrow, controls hint, phone text sizes ---- */
+#oarr{position:absolute;width:0;height:0;border-left:24px solid var(--acc);border-top:14px solid transparent;border-bottom:14px solid transparent;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65));display:none;pointer-events:none}
+#chint{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;line-height:1.5;text-align:center;opacity:0;transition:opacity .5s;pointer-events:none}
+#chint.show{opacity:1}body.touch #chint{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+@media (prefers-reduced-motion:reduce){#chint{transition:none}}
+body.mob #comp,body.mob #comp2,body.mob #cntt{font-size:12.5px!important}
+body.mob .tub,body.mob #kit,body.mob .lead,body.mob .itab,body.mob .sst,body.mob #steps li{font-size:12.5px}
+body.mob .itab th{font-size:11.5px}
+#hbar{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 6px 5px 10px;font-size:12px;font-weight:700;max-width:calc(100% - 24px);pointer-events:auto}
+#hbar[hidden]{display:none}#heldT{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}body.touch #hbar{bottom:calc(150px + env(safe-area-inset-bottom,0px))}body.touch #hbar button{min-height:40px}body.touch #hbar kbd{display:none}body.touch #heldT{white-space:normal;line-height:1.25;max-width:150px;font-size:11.5px}
+#chint{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body.touch #chint{bottom:calc(214px + env(safe-area-inset-bottom,0px))}
+
+/* ---- brightness row ---- */
+.itab input[type=checkbox]{width:18px;height:18px}
+.lit{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 12px;font-size:12px;font-weight:700}.lit span{color:var(--mut);margin-right:4px}.lit button{padding:6px 12px}.lit button.on{background:var(--acc);color:#04201a;border-color:var(--acc)}
+
+/* ---- instrument panels ---- */
+.ip{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;width:min(300px,calc(100vw - 24px))}
+.ip[hidden]{display:none}.ip .tph{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:6px}.ip .tph button{padding:2px 8px;min-height:30px}
+.lcd{background:#10201a;color:#7dffb0;font:bold 30px ui-monospace,monospace;border-radius:6px;padding:8px 10px;display:flex;align-items:baseline;gap:6px;justify-content:flex-end;font-variant-numeric:tabular-nums}
+.lcd .u{font-size:16px}.lcd span:first-child{font-size:12px;margin-right:auto;color:#ffcf5a;font-family:inherit}.lcd span.ok{color:#7dffb0!important}.ipi{font-size:11px;color:var(--mut);margin:6px 0;line-height:1.35}
+.ip .row{margin:4px 0}.ip .row button{min-height:40px;flex:1;touch-action:manipulation}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;min-height:36px}
+body.fps:not(.mob) #cnt{top:calc(62px + env(safe-area-inset-top,0px));max-height:calc(100vh - 210px)}
+@media (max-width:760px) and (orientation:portrait){.ip{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:none;right:12px;left:12px;width:auto}}
+@media (max-height:540px) and (orientation:landscape){.ip{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:none;right:12px;padding:6px 8px}.lcd{font-size:22px;padding:3px 8px}.ip .row button{min-height:32px;padding:4px 6px}.ip .tph{margin-bottom:3px}}
+body.weighing #joy,body.weighing #useB,body.weighing #zoomB,body.weighing #hbar{display:none!important}
+
+/* ---- disintegration tester panels ---- */
+#dpc{width:100%;height:auto;display:block;margin:6px 0;background:rgba(127,127,127,.06);border-radius:6px}
+.ip.wide{width:min(390px,calc(100vw - 24px));max-height:calc(100% - 24px);overflow:auto}.tubes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}
+.tcell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;font-size:11px;line-height:1.25;min-height:0}.tcell canvas{width:52px;height:52px;border-radius:50%}
+.tcell.pass{border-color:var(--acc);background:rgba(111,224,197,.12)}.tcell.fail{border-color:var(--hot);background:rgba(228,87,46,.1)}
+.ip button:disabled{opacity:.45;cursor:default}
+@media (max-height:540px) and (orientation:landscape){.ip.wide{width:min(600px,calc(100vw - 24px));max-height:calc(100% - 20px)}.tubes{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}.tcell canvas{width:38px;height:38px}.tcell{font-size:9.5px;padding:4px 2px}#dpc{display:none}}
+</style>
+<!-- ===== HUD: crosshair, objective, score bar, held item, joystick (shared by every lab) ===== -->
+<canvas id="scene" aria-label="3D laboratory bench"></canvas>
+<div id="hud"><div id="cross"></div><div id="prompt"></div><div id="obj"><div id="ostep"></div><div id="hmsg"></div></div>
+<div id="score"><span id="slv"></span><span id="stime">00:00</span><span id="spts">0 pts</span><button id="hintB">Hint <kbd>H</kbd></button><button id="nbB">Notebook <kbd>Tab</kbd></button><button id="modeB">Classic view</button></div>
+<div id="oarr" aria-hidden="true"></div><div id="hbar" hidden><span id="heldT"></span><button id="dropB">Put down <kbd>Q</kbd></button></div><div id="chint" role="status"></div>
+<div id="joy" aria-label="Move"><div id="knob"></div></div><button id="zoomB">Zoom</button><button id="useB">Use</button><div id="toast"></div></div>
+
+<!-- ===== LAB-SPECIFIC: tester control panel and the examination panel ===== -->
+<div id="dp" class="ip" hidden><div class="tph">Disintegration tester <button id="dpX" aria-label="Close tester panel">✕</button></div>
+<div class="lcd"><span id="dpS"></span><span id="dpV">00:00</span><span class="u">min</span></div><div id="dpI" class="ipi"></div><canvas id="dpc" width="300" height="84" aria-label="The six tubes"></canvas>
+<div class="row"><button id="dpH">Heater on</button><button id="dpR">Rate: 60 /min</button></div><div class="row"><button id="dpGo" class="cta">Start test</button><button id="dpStop">Stop &amp; lift basket</button></div></div>
+<div id="xp" class="ip wide" hidden><div class="tph">Examine each tube <button id="xpX" aria-label="Close">✕</button></div><div class="ipi" id="xpI">Look at what is left on the mesh of each tube. Tap a tube to change your call.</div>
+<div class="tubes" id="xpT"></div><div class="row"><button id="xpOk" class="cta">Confirm the results</button></div></div>
+<!-- ===== Start screen: levels, brightness, badges, controls ===== -->
+<div id="intro" class="ovl"><div class="card" style="width:min(560px,100%)"><h1 id="iT"></h1><p id="iP"></p>
+<div class="lvls" id="lvls" role="radiogroup" aria-label="Level"></div><div id="lvDesc"></div>
+<div class="lit" role="radiogroup" aria-label="Brightness"><span>Brightness</span><button data-l="0">Dim</button><button data-l="1">Normal</button><button data-l="2">Bright</button></div><h2>Badges</h2><div class="bdg" id="badges"></div><div id="pWhere"></div>
+<details class="ctl"><summary>Controls</summary><div class="keys"><span class="dk"><span class="k"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Walk (hold <kbd>Shift</kbd> to walk faster)</span><span class="k"><kbd>Mouse</kbd></span><span>Look around (click the bench to capture the mouse, <kbd>Esc</kbd> to release)</span><span class="k"><kbd>E</kbd> or click</span><span>Pick up, or use what you hold on the item under the crosshair</span><span class="k"><kbd>Q</kbd></span><span>Put down what you are holding</span><span class="k"><kbd>Z</kbd> or right-click</span><span>Lean in for a close look</span><span class="k"><kbd>H</kbd></span><span>Hint (Practice only, costs 25 points)</span><span class="k"><kbd>Tab</kbd></span><span>Open the lab notebook</span></span><span class="tc"><span class="k"><b>Left stick</b></span><span>Walk</span><span class="k"><b>Drag</b></span><span>Look around</span><span class="k"><b>Tap or Use</b></span><span>Pick up, or use what you hold on what you tap</span><span class="k"><b>Put down</b></span><span>Return what you are holding</span><span class="k"><b>Zoom</b></span><span>Lean in for a close look</span></span></div></details>
+<div class="row" style="margin-top:10px"><button id="resumeB" class="cta" hidden></button><button id="startB" class="cta">Start shift</button><button id="classicB">Play in classic view</button></div></div></div>
+
+<!-- ===== Dialogs: choice, question, result ===== -->
+<div id="choice" class="ovl" hidden><div class="card" role="dialog" aria-labelledby="chT" style="width:min(420px,100%)"><h1 id="chT"></h1><p id="chP"></p><div class="row" id="chB"></div></div></div>
+<div id="quiz" class="ovl" hidden><div class="card" role="dialog" aria-labelledby="qText"><div id="qTag"></div><h1 id="qText"></h1><div id="qOpts"></div><div id="qExp" aria-live="polite"></div><div class="row"><button id="qGo" class="cta" hidden>Back to the bench</button></div></div></div>
+<div id="result" class="ovl" hidden><div class="card"><h1 id="rTitle"></h1><div id="rStars"></div><div id="rStats"></div><div id="rBadges"></div><div class="row"><button id="nextB" class="cta">Next level</button><button id="againB">Play again</button><button id="menuB">Levels &amp; badges</button><button id="reviewB">Review record</button></div></div></div>
+
+<!-- ===== Notebook sheet: Procedure / Status / Results tabs and the control bar ===== -->
+<div id="sheet"><div id="mbar" aria-hidden="true"><div id="mstep"></div><div id="mmsg"></div></div>
+<div id="tabs" role="tablist"><button data-t="steps" role="tab">Procedure</button><button data-t="status" role="tab">Status</button><button data-t="cnt" id="tcnt" role="tab">Results</button></div>
+<div id="steps" class="panel"><h1 id="sT"></h1><p class="lead" id="sL"></p><ol id="olist"></ol><div id="tmsg" role="status"></div></div>
+<div id="status" class="panel"><h2>Instruments</h2><div id="ins" class="tub"></div><h2>Apparatus</h2><div id="tubes" class="tub"></div><h2>Lab record</h2><div id="comp" style="font-size:11px;line-height:1.5"></div></div>
+<!-- LAB-SPECIFIC: results tab content -->
+<div id="cnt" class="panel"><h2>Results</h2><div class="tw" id="itab"></div>
+<div id="decS"><h2 style="margin-top:10px">Decision</h2><div class="crit fhint" style="font-size:11px;color:var(--mut)">Stage 1: all 6 → complies · 1–2 fail → test 12 more · ≥ 3 fail → does not comply · Stage 2: ≥ 16 of 18</div>
+<div class="row"><button id="dCo">Complies: release</button><button id="dS2">Test 12 more (stage 2)</button><button id="dNo">Does not comply: reject</button></div></div>
+<h2 style="margin-top:10px">Batch record</h2><div id="comp2" style="font-size:11px;line-height:1.5"></div></div>
+<div id="ctl" class="panel"><button id="bnext">Next action ▶</button><button id="bres">Results</button><button id="hintC">Hint (−25)</button><button id="ff">Finish step ⏩</button><button id="speed">Sim speed: 1 min/s</button><button id="view">View: Overview</button><button id="fpB">First person</button><button id="litB">Light: Normal</button><button id="reset">Reset</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =====================================================================
+   1. ENGINE: helpers, renderer, environment, lab room and bench. Do not edit.
+   ===================================================================== */
+const $=id=>document.getElementById(id),BT=.9,TAU=Math.PI*2,PI=Math.PI,cl=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,sm=t=>{t=cl(t,0,1);return t*t*(3-2*t)},clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),wn=(t,a,b)=>cl((t-a)/(b-a),0,1),mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,powerPreference:'high-performance'});
+let pr=Math.min(devicePixelRatio,1.5),fAcc=0,fN=0,shInt=3,fc=0;renderer.setPixelRatio(pr);
+renderer.shadowMap.enabled=true;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.8;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xc9d1d8);const cam=new THREE.PerspectiveCamera(40,1,.02,60);
+const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.background=new THREE.Color(0x56606a);
+const EB2=(w,h,c,x,y,z,rx,ry)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({side:2}));m.material.color.setScalar(c);m.position.set(x,y,z);m.rotation.set(rx,ry,0);es.add(m)};
+for(let i=-2;i<=2;i++)EB2(.35,6,5,i*1.6,5,0,PI/2,0);EB2(7,3.2,2.2,-6,2.2,0,0,PI/2);for(let i=-3;i<=3;i++)EB2(.12,3.2,.15,-5.95,2.2,i,0,PI/2);
+EB2(30,30,.3,0,-1.5,0,-PI/2,0);EB2(16,6,.7,0,3,-7,0,0);EB2(4,2.5,2.6,6,2,2,0,-PI/2);EB2(14,5,.5,0,2,8,0,0);
+const envMap=pm.fromScene(es,.04).texture;scene.environment=envMap;
+const ENVK=.6,E=(o,i)=>Object.assign(o,{envMap,envMapIntensity:i*ENVK});
+const S=(c,r,m,i=.7)=>new THREE.MeshStandardMaterial(E({color:c,roughness:r,metalness:m},i));
+const G=(c,op,i=1.3)=>new THREE.MeshPhysicalMaterial(E({color:c,roughness:.03,metalness:0,transparent:true,opacity:op,side:2,depthWrite:false,clearcoat:1,clearcoatRoughness:.02,reflectivity:.9},i));
+const steel=S(0xc2c6ca,.2,1,1.4),brushed=S(0x9a9fa4,.6,1,1.1),white=S(0xeceeed,.38,.05,.5),dark=S(0x1b1d20,.45,.2,.3),rubber=S(0x0e0e0e,.85,0,.1);
+const add=(g,m,p,x=0,y=0,z=0,sh=1)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=!!sh;p.add(o);return o};
+const B=(w,h,d,m,p,x,y,z,sh)=>add(new THREE.BoxGeometry(w,h,d),m,p,x,y,z,sh);
+const C=(r,h,m,p,x,y,z,sh,s=32)=>add(new THREE.CylinderGeometry(r,r,h,s),m,p,x,y,z,sh);
+const V=(x,y,z)=>new THREE.Vector3(x,y,z),V2=(a,b)=>new THREE.Vector2(a,b);
+const cvs=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return{c,x:c.getContext('2d'),t}};
+const plane=(w,h,t,p,x,y,z)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,toneMapped:false}));m.position.set(x,y,z);p.add(m);return m};
+const txt=(w,h,s,col,bg,f)=>{const k=cvs(w,h);k.x.fillStyle=bg;k.x.fillRect(0,0,w,h);k.x.fillStyle=col;k.x.font=f;k.x.textAlign='center';k.x.textBaseline='middle';const fs=parseInt(f.match(/\d+/)[0]);s.split('\n').forEach((l,i,a)=>k.x.fillText(l,w/2,h/2+(i-(a.length-1)/2)*fs*1.2));return k.t};
+const nz=cvs(256,256);for(let y=0;y<256;y++){const v=110+Math.random()*100|0;nz.x.fillStyle=`rgb(${v},${v},${v})`;nz.x.fillRect(0,y,256,1)}
+nz.t.encoding=THREE.LinearEncoding;nz.t.wrapS=nz.t.wrapT=THREE.RepeatWrapping;brushed.roughnessMap=nz.t;
+const ribK=cvs(64,8);for(let i=0;i<64;i+=4){ribK.x.fillStyle='#fff';ribK.x.fillRect(i,0,2,8);ribK.x.fillStyle='#666';ribK.x.fillRect(i+2,0,2,8)}ribK.t.encoding=THREE.LinearEncoding;ribK.t.wrapS=THREE.RepeatWrapping;ribK.t.repeat.set(10,1);
+const capMat=c=>{const m=S(c,.45,0,.5);m.bumpMap=ribK.t;m.bumpScale=.0012;return m};
+function decal(r,h,y,ticks,col,p,ry=0,arc=1.2,fs=20){const W=128,H=512,k=cvs(W,H),x=k.x;x.strokeStyle=x.fillStyle=col;x.font=`bold ${fs}px sans-serif`;x.textBaseline='middle';
+ ticks.forEach(t=>{const py=H*(1-t[0]);x.lineWidth=t[1]?4:2.5;x.beginPath();x.moveTo(t[1]?14:30,py);x.lineTo(56,py);x.stroke();if(t[2])x.fillText(t[2],62,py)});
+ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24,1,true,-arc/2,arc),new THREE.MeshBasicMaterial({map:k.t,transparent:true,depthWrite:false,toneMapped:false}));m.position.y=y+h/2;m.rotation.y=ry;m.renderOrder=6;p.add(m);return m}
+function wrapLabel(r,h,y,tex,p,arc=1.5,ry=0){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24,1,true,-arc/2,arc),new THREE.MeshStandardMaterial(E({map:tex,roughness:.72},.3)));m.position.y=y;m.rotation.y=ry;m.renderOrder=5;p.add(m);return m}
+function rbottle(x,z,h,glass,cap,lab){const g=new THREE.Group();g.position.set(x,0,z);A.add(g);const r=h*.33;add(new THREE.LatheGeometry([V2(0,0),V2(r,0),V2(r*1.04,.006),V2(r*1.04,h*.72),V2(r*.6,h*.86),V2(r*.5,h*.9),V2(r*.5,h)],28),glass,g,0,0,0,0).renderOrder=3;C(r*.56,h*.12,capMat(cap),g,0,h*1.04,0,1,24);if(lab)wrapLabel(r*1.05,h*.3,h*.38,lab,g,1.5);return g}
+function bhTex(){const k=cvs(128,128),x=k.x;x.fillStyle='#f4c400';x.fillRect(0,0,128,128);x.strokeStyle='#111';x.lineWidth=6;for(let i=0;i<3;i++){const a=i*TAU/3-PI/2;x.beginPath();x.arc(64+Math.cos(a)*15,54+Math.sin(a)*15,16,0,TAU);x.stroke()}x.lineWidth=5;x.beginPath();x.arc(64,54,11,0,TAU);x.stroke();x.fillStyle='#111';x.font='bold 15px sans-serif';x.textAlign='center';x.fillText('BIOHAZARD',64,110);return k.t}
+function seg(m,p,q,r){const d=q.clone().sub(p),l=d.length();m.position.copy(p).addScaledVector(d,.5);m.scale.set(r,l,r);m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize())}
+
+/* room + bench */
+const ft=cvs(256,256);ft.x.fillStyle='#c9cdd0';ft.x.fillRect(0,0,256,256);ft.x.strokeStyle='#aab0b5';ft.x.lineWidth=4;ft.x.strokeRect(0,0,256,256);ft.t.wrapS=ft.t.wrapT=THREE.RepeatWrapping;ft.t.repeat.set(20,20);
+add(new THREE.PlaneGeometry(20,20),new THREE.MeshStandardMaterial(E({map:ft.t,roughness:.35},.3)),scene,0,-.05,0).rotation.x=-PI/2;
+const wallM=S(0xcfd6dc,.9,0,.1);B(20,6,.1,wallM,scene,0,3,-3);B(.1,6,20,wallM,scene,-10,3,0);B(.1,6,20,wallM,scene,10,3,0);
+const bk=cvs(256,256);bk.x.fillStyle='#1b1d1f';bk.x.fillRect(0,0,256,256);for(let i=0;i<3000;i++){const v=90+Math.random()*130|0;bk.x.fillStyle=`rgba(${v},${v},${v},.35)`;bk.x.fillRect(Math.random()*256,Math.random()*256,1.5,1.5)}bk.t.wrapS=bk.t.wrapT=THREE.RepeatWrapping;bk.t.repeat.set(5,2);
+const BENCHM=new THREE.MeshPhysicalMaterial(E({map:bk.t,roughness:.2,metalness:0,clearcoat:.7,clearcoatRoughness:.1},.6));B(4.6,.06,1.75,BENCHM,scene,.3,BT,-2.075);B(4.4,.85,1.65,S(0xf2f3f2,.5,0,.1),scene,.3,BT-.455,-2.075);B(4.4,.02,1.7,steel,scene,.3,BT-.03,-2.075);
+for(let i=0;i<5;i++){B(.85,.78,.01,S(0xe8eae9,.5,0,.1),scene,-1.7+i*.95,BT-.45,-1.245);B(.25,.02,.02,steel,scene,-1.7+i*.95,BT-.2,-1.24)}
+const A=new THREE.Group();A.position.set(0,BT+.03,-1.8);scene.add(A);
+
+/* drops */
+const PN=120,pI=new THREE.InstancedMesh(new THREE.SphereGeometry(1,8,6),new THREE.MeshPhysicalMaterial(E({color:0xffffff,roughness:.05,clearcoat:1,transparent:true,opacity:.8},1.2)),PN),P=[],po=new THREE.Object3D(),pc=new THREE.Color();pI.frustumCulled=false;A.add(pI);
+for(let i=0;i<PN;i++){P.push({on:0,x:0,y:0,z:0,vy:0,r:.001,fl:0,age:0});po.scale.setScalar(0);po.updateMatrix();pI.setMatrixAt(i,po.matrix);pI.setColorAt(i,pc.setRGB(1,1,1))}
+function emit(x,y,z,c,r,fl){const i=P.findIndex(q=>!q.on);if(i<0)return;Object.assign(P[i],{on:1,x,y,z,vy:0,r,fl,age:0});pI.setColorAt(i,pc.setRGB(c[0],c[1],c[2]));pI.instanceColor.needsUpdate=true}
+function stepP(dt){P.forEach((p,i)=>{if(p.on){p.age+=dt;p.vy-=9.81*dt;p.y+=p.vy*dt;if(p.y<p.fl||p.age>3)p.on=0}po.position.set(p.x,p.y,p.z);po.scale.setScalar(p.on?p.r:0);po.updateMatrix();pI.setMatrixAt(i,po.matrix)});pI.instanceMatrix.needsUpdate=true}
+
+
+/* =====================================================================
+   2. LAB SCENE — disintegration tester (basket-rack, 1000 mL beaker, 37 °C bath)
+   ===================================================================== */
+function lathe(pts,m,p,x,y,z){const o=add(new THREE.LatheGeometry(pts.map(q=>V2(q[0],q[1])),28),m,p,x,y,z,0);o.renderOrder=4;return o}
+const glassM=()=>G(0xffffff,.24,1.6);
+function liqM(c,o){return new THREE.MeshPhysicalMaterial(E({color:c,roughness:.08,transparent:true,opacity:o||.6,depthWrite:false,clearcoat:.5},.8))}
+
+/* --- water bath with the 1000 mL low-form beaker --- */
+const DT=V(.05,0,-.36),bodyM=S(0xe9ecef,.42,.05,.5),darkM=S(0x2b3036,.5,.2,.4);
+B(.44,.04,.32,bodyM,A,DT.x,.02,DT.z);                       // plinth
+B(.36,.16,.26,G(0xeaf6ff,.16,1.2),A,DT.x,.12,DT.z).renderOrder=5;   // acrylic bath
+B(.355,.12,.255,liqM(0x9fd0e6,.28),A,DT.x,.1,DT.z).renderOrder=3;    // bath water
+const BEAK=V(DT.x,.045,DT.z);lathe([[0,0],[.055,0],[.057,.004],[.057,.13],[.06,.134]],glassM(),A,BEAK.x,BEAK.y,BEAK.z);
+const medL=add(new THREE.CylinderGeometry(.054,.054,1,32),liqM(0xd6e8ff,.5),A,BEAK.x,BEAK.y,BEAK.z,0);medL.renderOrder=3;medL.visible=false;
+function medVis(mL){medL.visible=mL>0;const h=Math.max(.001,mL/1000*.12);medL.scale.y=h;medL.position.y=BEAK.y+.003+h/2}
+/* tower, arm and control unit */
+B(.08,.44,.1,bodyM,A,DT.x+.26,.22,DT.z-.04);B(.3,.03,.06,bodyM,A,DT.x+.13,.43,DT.z-.04);
+B(.3,.07,.07,darkM,A,DT.x+.12,.035,DT.z+.2);const tsK=cvs(320,96);plane(.13,.039,tsK.t,A,DT.x+.06,.05,DT.z+.2355);
+[[.17,0x2fae5b],[.2,0xd04020],[.23,0x2f7fd0]].forEach(([dx,c])=>C(.009,.006,capMat(c),A,DT.x+dx,.04,DT.z+.236,1,16).rotation.x=PI/2);
+plane(.16,.016,txt(320,32,'DISINTEGRATION TESTER · USP <701> / Ph. Eur. 2.9.1','#3a4148','#2b3036','bold 13px sans-serif'),A,DT.x+.12,.062,DT.z+.2355);
+/* basket-rack assembly: 6 glass tubes, plates, 10-mesh screen, hanging rod */
+const bsk=new THREE.Group();A.add(bsk);const TUBES=[];
+C(.004,.2,steel,bsk,0,.18,0,1,10);C(.048,.006,S(0xf2f4f5,.5,0,.3),bsk,0,.08,0,1,32);C(.048,.006,S(0xf2f4f5,.5,0,.3),bsk,0,0,0,1,32);
+{const k=cvs(128,128),x=k.x;x.fillStyle='#8a9096';x.fillRect(0,0,128,128);x.strokeStyle='#d8dde1';x.lineWidth=2;for(let i=0;i<128;i+=8){x.beginPath();x.moveTo(i,0);x.lineTo(i,128);x.moveTo(0,i);x.lineTo(128,i);x.stroke()}k.t.needsUpdate=true;
+ add(new THREE.CircleGeometry(.046,32).rotateX(-PI/2),new THREE.MeshStandardMaterial({map:k.t,roughness:.6,metalness:.6}),bsk,0,-.0035,0)}
+const tabM=S(0xf7f5ee,.85,0,.2),coreM=S(0xfbf9f2,.9,0,.2),softM=liqM(0xf2eee0,.55),discM=G(0xd8f0ff,.5,1.2);
+for(let i=0;i<6;i++){const a=i/6*TAU,x=Math.cos(a)*.029,z=Math.sin(a)*.029;C(.0115,.078,G(0xffffff,.22,1.5),bsk,x,.04,z,0,20).renderOrder=4;
+ const tab=C(.0065,.0042,tabM,bsk,x,.004,z,1,20);tab.visible=false;const soft=add(new THREE.SphereGeometry(.006,12,8),softM,bsk,x,.003,z,0);soft.scale.set(1,.35,1);soft.visible=false;
+ const disc=C(.0105,.0095,discM,bsk,x,.012,z,0,20);disc.visible=false;TUBES.push({x,z,tab,soft,disc})}
+const BK_UP=V(BEAK.x,.25,BEAK.z),BK_MID=V(BEAK.x,.102,BEAK.z);bsk.position.copy(BK_UP);
+/* digital thermometer probe in the beaker */
+const TH=V(BEAK.x-.045,0,BEAK.z+.04);C(.003,.17,steel,A,TH.x,.12,TH.z,0,10);B(.03,.05,.014,darkM,A,TH.x,.225,TH.z);const thK=cvs(128,64);plane(.024,.012,thK.t,A,TH.x,.23,TH.z+.0075);
+
+/* --- purified water jug (1 L) --- */
+const JUH=V(-.55,0,.06),jug=new THREE.Group();jug.position.copy(JUH);A.add(jug);
+lathe([[0,0],[.045,0],[.047,.005],[.047,.15],[.05,.155]],glassM(),jug,0,0,0);const jugL=add(new THREE.CylinderGeometry(.044,.044,.12,28),liqM(0xd6e8ff,.45),jug,0,.065,0,0);jugL.renderOrder=3;
+add(new THREE.TorusGeometry(.03,.006,8,16,PI),glassM(),jug,.05,.09,0).rotation.z=-PI/2;wrapLabel(.0475,.03,.04,txt(160,60,'PURIFIED WATER\n1000 mL','#0b4e8a','#ffffff','bold 16px sans-serif'),jug,1.4);
+
+/* --- tablet bottle (batch under test) --- */
+const TBH=V(-.33,0,-.42),tbO=new THREE.Group();tbO.position.copy(TBH);A.add(tbO);
+lathe([[0,0],[.032,0],[.034,.005],[.034,.085],[.022,.1],[.022,.11]],G(0x9a5a1a,.55,1.2),tbO,0,0,0);const tbCap=C(.024,.018,capMat(0xffffff),tbO,0,.118,0,1,24);
+wrapLabel(.0345,.05,.045,txt(200,120,'PARACETAMOL\n500 mg tablets\nBatch PT-2210\nuncoated','#14306e','#fbfaf4','bold 15px sans-serif'),tbO,1.6);
+
+/* --- box of disintegration discs --- */
+const DBH=V(.45,0,.12),dbO=new THREE.Group();dbO.position.copy(DBH);A.add(dbO);B(.08,.03,.06,S(0x2f7fd0,.45,0,.3),dbO,0,.015,0);
+for(let i=0;i<3;i++)C(.0105,.0095,discM,dbO,-.022+i*.022,.035,0,0,20);plane(.07,.014,txt(200,40,'DISCS (Ph. Eur.)','#fff','#2f7fd0','bold 18px sans-serif'),dbO,0,.016,.0305);
+
+/* --- monograph clipboard, notebook, poster --- */
+const MONO=V(-.82,.004,-.22);B(.16,.006,.22,S(0x6b4a2b,.7,0,.2),A,MONO.x,.003,MONO.z);
+plane(.14,.19,(()=>{const k=cvs(140,190),x=k.x;x.fillStyle='#fbfaf4';x.fillRect(0,0,140,190);x.fillStyle='#14306e';x.font='bold 12px sans-serif';x.fillText('SPECIFICATION',10,18);x.font='10px sans-serif';
+ ['PT-2210 uncoated tablets','Disintegration:','Ph. Eur. 2.9.1 test A','(Tablets, 0478)','water R, 37 ± 2 °C','add a disc · 6 tablets','operate 15 minutes'].forEach((l,i)=>x.fillText(l,10,40+i*18));k.t.needsUpdate=true;return k.t})(),A,MONO.x,.0065,MONO.z).rotation.x=-PI/2;
+const BOOK=V(1.05,.004,.06);B(.2,.008,.27,S(0x1f3a5f,.6,0,.3),A,BOOK.x,.004,BOOK.z);
+plane(.18,.25,(()=>{const k=cvs(180,250),x=k.x;x.fillStyle='#fbfaf4';x.fillRect(0,0,180,250);x.strokeStyle='#9bb';for(let y=30;y<250;y+=14){x.beginPath();x.moveTo(8,y);x.lineTo(172,y);x.stroke()}x.fillStyle='#14306e';x.font='bold 15px sans-serif';x.fillText('QC worksheet',12,20);k.t.needsUpdate=true;return k.t})(),A,BOOK.x,.0085,BOOK.z).rotation.x=-PI/2;
+{const k=cvs(512,300),x=k.x;x.fillStyle='#f4f1e6';x.fillRect(0,0,512,300);x.fillStyle='#22313d';x.font='bold 22px sans-serif';x.fillText('Disintegration: acceptance',16,34);x.font='16px sans-serif';
+ ['Stage 1: 6 units. All disintegrate → complies.','1 or 2 fail → test 12 more units.','Stage 2: ≥ 16 of 18 disintegrate → complies.','3 or more fail at stage 1 → does not comply.','','Disintegrated: no residue on the mesh, or a soft','mass with no firm core (coating fragments OK).'].forEach((l,i)=>x.fillText(l,16,78+i*30));k.t.needsUpdate=true;plane(.62,.36,k.t,A,.3,.78,-1.19)}
+
+/* =====================================================================
+   3. ENGINE: soft lighting (tuned so phones are not too bright)
+   ===================================================================== */
+/* lights */
+const hemi=new THREE.HemisphereLight(0xffffff,0x8899aa,.42);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff6ea,.8);key.position.set(2,4,.7);key.target.position.set(.4,1.1,-1.8);scene.add(key.target);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);key.shadow.bias=-.0004;Object.assign(key.shadow.camera,{near:1,far:9,left:-2.4,right:2.4,top:2.4,bottom:-2.4});scene.add(key);
+const rimL=new THREE.DirectionalLight(0xcfe3ff,.3);rimL.position.set(-3,3,-6);scene.add(rimL);
+
+
+/* =====================================================================
+   4. LAB LOGIC — Tablet disintegration test (QC)
+   ===================================================================== */
+const st={};
+const LAB={
+  id:'disintegration-qc',
+  title:'Tablet Disintegration Test',
+  intro:'Batch PT-2210 of paracetamol 500 mg uncoated tablets is waiting for QC release. Run the disintegration test yourself: prepare the medium at 37 ± 2 °C, set the stroke rate, load six tablets with discs, operate the basket for 15 minutes, lift it, examine every tube and apply the acceptance rule: release or reject.',
+  lead:'Ph. Eur. 2.9.1 test A / USP &lt;701&gt;: basket-rack with 6 tubes in a 1000 mL low-form beaker of water at 37 ± 2 °C, 29–32 cycles per minute over 55 ± 2 mm, with discs. Uncoated tablets (Ph. Eur. Tablets 0478): operate for 15 minutes.',
+  startMsg:'Follow the glowing marker. Start by reading the product specification on the clipboard.',
+  okTitle:'Correct QC decision',badTitle:'Wrong QC decision',
+  player:{x:-.35,z:-.55,yaw:0,pitch:-.5},
+  ffStop:5,
+  closePanels(){closeDP();closeXP()},
+  quizBlocked:()=>st.dpOpen||st.xpOpen||st.run==='running',
+  key(k){if(k==='r'&&st.dpOpen&&st.run==='running')stopRun()},
+  autoWait(){if(st.heater&&st.vol&&st.medT<36.5){st.bathT=37;st.medT=37;return true}return false},
+  onReset(){},
+};
+const VIEWS=[['Overview',0,1.15,3.4,.05,1.15,-1.8],['Tester',0,1.0,.85,.05,1.05,-2.1],['Basket close-up',.0,.9,.45,.05,1.0,-2.15],['Bench',.1,1.05,1.1,-.5,1.0,-1.8]];
+const LIMIT=15,ROOM=26;
+
+/* ---------- shift state ---------- */
+function newBatch(seed){const r=rng(seed*7919+13);for(const k in st)delete st[k];const u=r(),fast=()=>+(2+r()*7.5).toFixed(2),slow=()=>+(15.6+r()*6).toFixed(2);
+  let t=Array.from({length:18},fast);
+  if(u>=.5&&u<.78){const n=r()<.6?1:2;for(let i=0;i<n;i++)t[i*2+1]=slow();if(r()<.45)t[9]=slow()}      // borderline: stage 2 decides
+  else if(u>=.78){const n=3+Math.floor(r()*3);for(let i=0;i<n;i++)t[i]=slow();}                         // clearly failing batch
+  Object.assign(st,{seed,t,soft:Array.from({length:18},()=>r()<.35),
+    held:null,readMono:false,vol:0,heater:false,bathT:ROOM,medT:ROOM,tRead:null,rate:60,tabs:0,discs:false,
+    run:'idle',runT:0,cond:null,stopT:null,obs:null,cls:null,s2:null,dec:null,path:[],end:false,alarm:false,dpOpen:false,xpOpen:false,
+    E:{vol:0,temp:0,rate:0,disc:0,early:0,late:0,misid:0,dec:0},warn:'',ack:[],ffUsed:0,hints:0,q:{},t0:null,tEnd:null,shown:false})}
+
+/* ---------- carryable items ---------- */
+const ITEMS={
+  jug:{name:'purified-water jug',obj:()=>jug,home:()=>JUH.clone(),off:V(.12,-.27,-.42),hov:()=>V(JUH.x,.22,JUH.z),hit:[.1,.17,.1],held:()=>`Water jug${st.vol?' · used':' · 1000 mL'}`},
+  tb:{name:'tablet bottle',obj:()=>tbO,home:()=>TBH.clone(),off:V(.12,-.25,-.4),hov:()=>V(TBH.x,.22,TBH.z),hit:[.08,.13,.08],held:()=>'Paracetamol 500 mg · batch PT-2210'},
+  db:{name:'disc box',obj:()=>dbO,home:()=>DBH.clone(),off:V(.1,-.2,-.35),hov:()=>V(DBH.x,.2,DBH.z),hit:[.09,.05,.07]},
+};
+const TARGETS=[
+  {id:'mono',name:'Product specification (clipboard)',pos:[MONO.x,.02,MONO.z],size:[.17,.04,.23]},
+  {id:'beak',name:'1000 mL beaker in the 37 °C bath',pos:[BEAK.x,.12,BEAK.z+.05],size:[.13,.16,.05]},
+  {id:'bask',name:'Basket-rack assembly',pos:[BK_UP.x,.26,BK_UP.z],size:[.11,.12,.11]},
+  {id:'test',name:'Tester control unit',pos:[DT.x+.12,.04,DT.z+.2],size:[.3,.08,.08]},
+  {id:'therm',name:'Digital thermometer',pos:[TH.x,.21,TH.z],size:[.04,.08,.03]},
+  {id:'book',name:'QC worksheet (results)',pos:[BOOK.x,.02,BOOK.z],size:[.22,.04,.28]},
+];
+
+/* ---------- specification, medium, temperature ---------- */
+function readMono(){showChoice('Specification: PT-2210, paracetamol 500 mg uncoated tablets',`<b>Disintegration</b>: Ph. Eur. 2.9.1 test A (USP &lt;701&gt;), as required for uncoated tablets by the Ph. Eur. general monograph <i>Tablets</i> (0478).<br>Medium: water R at 37 ± 2 °C in a 1000 mL low-form beaker, deep enough that the mesh stays ≥ 15 mm below the surface at the top of the stroke and ≥ 25 mm above the bottom at the lowest point.<br>Apparatus: basket-rack with 6 tubes, 29–32 cycles per minute over 55 ± 2 mm. <b>Add a disc to each tube.</b><br>Place 1 tablet in each of the 6 tubes. <b>Operate for 15 minutes</b>, then lift the basket and examine.<br><b>Complies</b> if all 6 have disintegrated. If 1 or 2 fail, test 12 more: at least 16 of 18 must disintegrate.`,[['Got it',()=>{st.readMono=true;tmsg('Specification read: water R, 37 ± 2 °C, discs, 6 tablets, operate 15 minutes.')},true]])}
+function fillBeaker(){if(st.vol)return tmsg('The beaker already holds the medium.');if(st.run!=='idle')return tmsg('Not during the test.');
+  showChoice('Fill the beaker','How much purified water?',[['To the 900 mL mark',()=>doFill(900),true],['To 500 mL (saves water)',()=>doFill(500)]])}
+function doFill(v){if(v<700){if(W('vol')){wset('vol');return tmsg('At 500 mL the mesh rises out of the water at the top of each stroke, so the tablets spend part of every cycle in air. The mesh must stay at least 15 mm below the surface at the top of the stroke. Choose again, or pick 500 mL again to carry on anyway.')}st.E.vol++}
+  wclr();tmsg('Pouring purified water into the beaker…');
+  handRun([[.6,BEAK.x+.08,.3,BEAK.z,0],[1.9,BEAK.x+.08,.3,BEAK.z,0]],2.4,t=>{jug.rotation.z=t>.6&&t<1.9?1.4*sm((t-.6)/.4)*(1-sm((t-1.5)/.4)):0;medVis(v*sm((t-.8)/1));if(t>.8&&t<1.7&&Math.random()<.5)emit(BEAK.x+.03,.27,BEAK.z,[.85,.92,1],.0014,.12)},
+    ()=>{jug.rotation.z=0;st.vol=v;st.medT=ROOM;syncVis();tmsg(`${v} mL of water in the beaker, at room temperature (${ROOM} °C). Switch the heater on at the control unit.`)})}
+function readTherm(){if(!st.vol)return tmsg('The probe is dry: fill the beaker first.');st.tRead=+st.medT.toFixed(1);
+  const ok=st.tRead>=35&&st.tRead<=39;tmsg(ok?`Medium at ${st.tRead.toFixed(1)} °C: within 37 ± 2 °C.`:`Medium at ${st.tRead.toFixed(1)} °C: not yet within 37 ± 2 °C.${st.heater?' Wait for it to warm up and read again.':' Switch the heater on.'}`)}
+
+/* ---------- loading the basket ---------- */
+function loadTabs(){if(st.run!=='idle')return tmsg('The basket is in use.');if(st.tabs)return tmsg('Six tablets are already loaded.');
+  showChoice('Load the basket','The specification asks for 6 tablets.',[['One tablet in each of the six tubes',doLoad,true]])}
+function doLoad(){tmsg('Placing one tablet in each tube…');handRun([[.6,BK_UP.x+.05,.4,BK_UP.z,0],[1.8,BK_UP.x+.05,.4,BK_UP.z,0]],2.2,t=>{capAt(tbCap,tbO,V(0,.118,0),V(TBH.x+.06,.008,TBH.z+.05),Math.min(wn(t,0,.4),1-wn(t,1.8,2.2)),.03);TUBES.forEach((T,i)=>T.tab.visible=t>.8+i*.15)},
+  ()=>{capAt(tbCap,tbO,V(0,.118,0),V(0,0,0),0);st.tabs=6;syncVis();tmsg('Six tablets loaded, one per tube. Now add a disc to each tube.')})}
+function addDiscs(){if(st.run!=='idle')return tmsg('The basket is in use.');if(!st.tabs)return tmsg('Load the tablets first: the disc sits on top of each tablet.');if(st.discs)return tmsg('The discs are already in.');
+  handRun([[.6,BK_UP.x+.05,.4,BK_UP.z,0],[1.6,BK_UP.x+.05,.4,BK_UP.z,0]],2,t=>{TUBES.forEach((T,i)=>T.disc.visible=t>.7+i*.12)},()=>{st.discs=true;syncVis();tmsg('A disc on top of each tablet. Set the stroke rate and start the test at the control unit.')})}
+
+/* ---------- the tester: heater, rate, run, stop ---------- */
+const factor=c=>(c.vol<700?1.35:1)*(c.T<35?1+(35-c.T)*.045:c.T>39?1-(c.T-39)*.03:1)*(c.rate===30?1:c.rate>30?.68:1.35)*(c.discs?1:1.28);
+const effT=i=>st.t[i]*factor(st.cond);
+function openDP(){closeXP();st.dpOpen=true;unlock();$('dp').hidden=false;document.body.classList.add('weighing');drawDP(true)}
+function closeDP(){st.dpOpen=false;$('dp').hidden=true;if(!st.xpOpen)document.body.classList.remove('weighing')}
+function heater(){st.heater=!st.heater;tmsg(st.heater?'Heater on: the bath is warming to 37.0 °C.':'Heater off.')}
+function setRate(){if(st.run==='running')return tmsg('Not while the basket is moving.');const L=[60,30,15];st.rate=L[(L.indexOf(st.rate)+1)%3];tmsg(`Stroke rate set to ${st.rate} cycles per minute.`)}
+function startRun(){if(st.run!=='idle')return tmsg(st.run==='running'?'The test is running.':'This run is finished.');if(!st.vol)return tmsg('There is no medium in the beaker.');if(st.tabs<6)return tmsg('Load six tablets first.');
+  if(AUTO){st.rate=30;if(!st.heater)st.heater=true;if(st.medT<35){st.bathT=st.medT=37}}
+  const T=st.medT;
+  if(st.rate!==30&&W('rate')){wset('rate');return tmsg(`The tester is set to ${st.rate} cycles per minute. The method needs 29–32: the stroke rate changes how hard the tablets are worked. Set 30, or start again to carry on anyway.`)}
+  if((T<35||T>39)&&W('temp')){wset('temp');return tmsg(`The medium is at ${T.toFixed(1)} °C, outside 37 ± 2 °C. Tablets disintegrate more slowly in cool water. Wait for the temperature, or start again to carry on anyway.`)}
+  if(!st.discs&&W('disc')){wset('disc');return tmsg('The specification asks for a disc in each tube. Without them, tablets can float and are worked less. Add the discs, or start again to carry on anyway.')}
+  wclr();if(st.rate!==30)st.E.rate++;if(T<35||T>39)st.E.temp++;if(!st.discs)st.E.disc++;
+  st.cond={vol:st.vol,T:+T.toFixed(1),rate:st.rate,discs:st.discs};st.run='running';st.runT=0;st.alarm=false;
+  run(1,(q,t)=>{bsk.position.lerpVectors(BK_UP,BK_MID,sm(t))},()=>{});tmsg('Basket lowered into the medium and running. Watch the tablets; the limit is 15 minutes.')}
+function stopRun(){if(st.run!=='running')return tmsg('The test is not running.');const S=st.runT,left=[0,1,2,3,4,5].filter(i=>effT(i)>S).length;
+  if(S<LIMIT-.05&&W('early')){wset('early');return tmsg(left?`Only ${S.toFixed(1)} minutes have passed and ${left} tablet(s) are still disintegrating. The method says operate for 15 minutes, then lift the basket. Wait, or stop again anyway.`:`Every tablet looks gone, but the method says operate for the full 15 minutes before lifting the basket. Wait for the timer, or stop again anyway.`)}
+  wclr();if(S<LIMIT-.05)st.E.early++;if(S>LIMIT+.5)st.E.late++;
+  st.stopT=+S.toFixed(2);st.run='stopped';st.obs=[0,1,2,3,4,5].map(i=>effT(i)<=S?(st.soft[i]?'soft':'none'):'core');
+  run(1,(q,t)=>{bsk.position.lerpVectors(BK_MID,BK_UP,sm(t))},()=>{syncVis();closeDP();if(!AUTO)openXP()});tmsg(`Stopped at ${mmss(S*60)} min and lifted the basket. Examine each tube.`)}
+function drawDP(force){const x=tsK.x;x.fillStyle='#10201a';x.fillRect(0,0,320,96);x.fillStyle='#7dffb0';x.font='bold 30px monospace';x.textAlign='left';x.textBaseline='middle';
+  x.fillText(`${st.bathT.toFixed(1)}°C`,10,30);x.textAlign='right';x.fillText(st.run==='idle'?'--:--':mmss(st.runT*60),310,30);x.font='bold 20px monospace';x.textAlign='left';x.fillText(`${st.rate}/min ${st.heater?'HEAT':''}`,10,72);tsK.t.needsUpdate=true;
+  const tx=thK.x;tx.fillStyle='#c9dcc4';tx.fillRect(0,0,128,64);tx.fillStyle='#111';tx.font='bold 30px monospace';tx.textAlign='center';tx.textBaseline='middle';tx.fillText(st.vol?st.medT.toFixed(1):'--.-',64,34);thK.t.needsUpdate=true;
+  if(!st.dpOpen&&!force)return;$('dpV').textContent=st.run==='idle'?'00:00':mmss(st.runT*60);$('dpS').textContent=st.run==='running'?(st.runT>=LIMIT?'⏰ timer: lift the basket':'running'):st.run==='stopped'?'stopped':'ready';$('dpS').className=st.run==='running'?'ok':'';
+  $('dpI').textContent=`Bath ${st.bathT.toFixed(1)} °C · medium ${st.vol?st.medT.toFixed(1)+' °C':'—'} · ${st.rate} cycles/min · ${st.tabs} tablets${st.discs?' + discs':''}`;
+  $('dpH').textContent=st.heater?'Heater off':'Heater on';$('dpR').textContent=`Rate: ${st.rate} /min`;$('dpGo').disabled=st.run!=='idle';$('dpStop').disabled=st.run!=='running';$('dpStop').textContent=st.runT>=LIMIT&&st.run==='running'?'Lift the basket':'Stop & lift basket';$('dpR').disabled=st.run==='running';
+  const c=$('dpc'),g=c.getContext('2d');g.clearRect(0,0,300,84);for(let i=0;i<6;i++){const cx=26+i*50;drawTube(g,cx,6,tubeState(i))}}
+function tubeState(i){if(!st.tabs)return{k:'empty'};if(st.run==='idle')return{k:'tab',p:0};if(st.run==='stopped')return{k:st.obs[i],p:Math.min(1,st.stopT/effT(i))};const p=st.runT/effT(i);return p>=1?{k:st.soft[i]?'soft':'none',p:1}:{k:'tab',p}}
+function drawTube(g,cx,y,s){g.strokeStyle='rgba(140,170,190,.9)';g.lineWidth=2;g.strokeRect(cx-17,y,34,70);g.fillStyle='rgba(150,200,225,.25)';g.fillRect(cx-17,y+10,34,60);g.strokeStyle='#8a9096';g.beginPath();g.moveTo(cx-17,y+68);g.lineTo(cx+17,y+68);g.stroke();
+  g.fillStyle='#f6f3ea';if(s.k==='tab'||s.k==='core'){const q=s.k==='core'?Math.max(.25,1-s.p):1-s.p*.85,w=26*q;g.beginPath();g.ellipse(cx,y+62,Math.max(3,w/2),Math.max(2,6*q),0,0,TAU);g.fill();g.strokeStyle='#b9b2a0';g.lineWidth=1;g.stroke();
+   if(s.p>.3&&s.k==='tab')for(let j=0;j<6;j++){g.fillRect(cx-14+Math.random()*28,y+30+Math.random()*34,2,2)}}
+  else if(s.k==='soft'){g.fillStyle='rgba(240,236,220,.65)';g.beginPath();g.ellipse(cx,y+64,11,3,0,0,TAU);g.fill()}}
+
+/* ---------- examining the tubes ---------- */
+function openXP(){closeDP();st.xpOpen=true;unlock();$('xp').hidden=false;document.body.classList.add('weighing');if(!st.callT)st.callT=[null,null,null,null,null,null];drawXP()}
+function closeXP(){st.xpOpen=false;$('xp').hidden=true;if(!st.dpOpen)document.body.classList.remove('weighing')}
+function drawXP(){const box=$('xpT');box.innerHTML='';st.obs.forEach((o,i)=>{const d=document.createElement('button');d.className='tcell'+(st.callT[i]==null?'':st.callT[i]?' pass':' fail');d.setAttribute('aria-label',`Tube ${i+1}`);
+  const c=document.createElement('canvas');c.width=56;c.height=56;const g=c.getContext('2d');g.fillStyle='#8a9096';g.fillRect(0,0,56,56);g.strokeStyle='#d8dde1';for(let k=0;k<56;k+=7){g.beginPath();g.moveTo(k,0);g.lineTo(k,56);g.moveTo(0,k);g.lineTo(56,k);g.stroke()}
+  if(o==='soft'){g.fillStyle='rgba(244,240,226,.7)';g.beginPath();g.ellipse(28,30,15,10,.3,0,TAU);g.fill()}if(o==='core'){const q=Math.max(.3,1-tubeState(i).p*.8);g.fillStyle='rgba(244,240,226,.6)';g.beginPath();g.ellipse(28,30,18,12,0,0,TAU);g.fill();g.fillStyle='#fbf9f2';g.beginPath();g.ellipse(28,30,13*q+3,9*q+2,.2,0,TAU);g.fill();g.strokeStyle='#a9a290';g.stroke()}
+  d.appendChild(c);const s=document.createElement('span');s.textContent=`Tube ${i+1}: `+(st.callT[i]==null?'tap to judge':st.callT[i]?'disintegrated ✓':'not disintegrated ✗');d.appendChild(s);
+  d.onclick=()=>{st.callT[i]=st.callT[i]==null?true:!st.callT[i];drawXP()};box.appendChild(d)});$('xpOk').disabled=st.callT.some(v=>v==null)}
+function confirmXP(){if(AUTO){st.callT=st.obs.map(o=>o!=='core')}if(st.callT.some(v=>v==null))return tmsg('Judge all six tubes first.');
+  const wrong=st.obs.map((o,i)=>(o!=='core')!==st.callT[i]?i:-1).filter(i=>i>=0);
+  if(wrong.length&&W('misid')){wset('misid');$('xpI').innerHTML=`Look again at tube ${wrong[0]+1}. A soft mass with no firm core counts as disintegrated; a firm, palpable core does not. Change your call, or confirm again to keep it.`;return}
+  wclr();st.E.misid+=wrong.length;st.cls=st.callT.slice();closeXP();const k=st.cls.filter(v=>!v).length;
+  tmsg(`Recorded: ${6-k} of 6 disintegrated within the limit. Open the QC worksheet and decide.`)}
+
+/* ---------- decision and stage 2 ---------- */
+const s1Fails=()=>st.cls?st.cls.filter(v=>!v).length:0;
+function runStage2(){if(st.s2||!st.cls)return;const k=s1Fails();if((k<1||k>2)&&W('s2')){wset('s2');return tmsg(k===0?'All six disintegrated: stage 2 is not needed. Press again to run it anyway.':'Three or more failed: the batch does not comply, and stage 2 does not apply. Press again to run it anyway.')}
+  wclr();if(k<1||k>2)st.E.dec++;const f=factor(st.cond),fails=[];for(let i=6;i<18;i++)if(st.t[i]*f>LIMIT)fails.push(i);st.s2={fails:fails.length};st.path.push('s2');drawResults();
+  tmsg(`Stage 2: 12 more tablets run in two baskets under the same conditions: ${12-fails.length} of 12 disintegrated. Total ${18-k-fails.length} of 18.`)}
+function decide(ok){if(st.end||!st.cls)return;const k=s1Fails(),total=st.s2?k+st.s2.fails:null;const right=st.s2?(total<=2):(k===0?true:k>=3?false:null);
+  if(right===null&&W('dec')){wset('dec');return tmsg(`${k} tablet(s) failed at stage 1: the rule says test 12 more before deciding. Decide anyway to skip stage 2.`)}
+  if(right!==null&&right!==ok&&W('dec')){wset('dec');return tmsg(st.s2?`Stage 2 total: ${18-total} of 18 disintegrated. The batch ${total<=2?'complies (≥ 16 of 18)':'does not comply (< 16 of 18)'}. Decide again to keep your choice.`:`${6-k} of 6 disintegrated: the batch ${ok?'does not comply':'complies'}. Decide again to keep your choice.`)}
+  wclr();if(right!==ok)st.E.dec++;st.dec=ok?'comply':'reject';st.end=true;st.tEnd=performance.now();drawResults();tmsg(ok?'Batch released: complies with the disintegration test.':'Batch rejected: does not comply. An OOS investigation starts.')}
+function trueDecision(){const n1=st.t.slice(0,6).filter(v=>v>LIMIT).length;if(n1===0)return'comply';if(n1>=3)return'reject';return n1+st.t.slice(6).filter(v=>v>LIMIT).length<=2?'comply':'reject'}
+function verdict(){const td=trueDecision(),ok=st.dec===td,why=[];if(st.dec&&!ok)why.push(`the batch truly ${td==='comply'?'complies':'does not comply'}, but it was ${st.dec==='comply'?'released':'rejected'}`);return{ok,td,why}}
+function resultLines(v){const n1=st.t.slice(0,6).filter(x=>x>LIMIT).length;return`Your result: ${st.cls?6-s1Fails():'—'} of 6 at stage 1${st.s2?`, ${18-s1Fails()-st.s2.fails} of 18 after stage 2`:''} → ${st.dec==='comply'?'released':'rejected'}<br>True batch: ${6-n1} of 6 disintegrate within 15 min under correct conditions → ${v.td==='comply'?'complies':'does not comply'}`}
+function causes(){const o=[],E=st.E,c=st.cond||{};if(E.vol)o.push('only 500 mL of medium: the mesh rose out of the water at the top of each stroke');if(E.temp)o.push(`the test started at ${c.T} °C instead of 37 ± 2 °C`);if(E.rate)o.push(`the stroke rate was ${c.rate} cycles/min instead of 29–32`);
+  if(E.disc)o.push('no discs were used although the method requires them');if(E.early)o.push(`the basket was lifted early, at ${st.stopT} min, instead of after the full 15 minutes`);if(E.late)o.push(`the test ran past the limit, to ${st.stopT} min`);if(E.misid)o.push(`${E.misid} tube(s) were judged wrongly`);if(E.dec)o.push('the acceptance rule was not followed');return o}
+function scoreNow(){let s=0;if(st.readMono)s+=10;if(st.vol)s+=20;if(st.tRead!=null&&st.tRead>=35&&st.tRead<=39)s+=20;if(st.tabs)s+=20;if(st.discs)s+=15;if(st.cond)s+=30;if(st.obs)s+=20;if(st.cls)s+=10*st.cls.filter((v,i)=>(st.obs[i]!=='core')===v).length;
+  const v=st.end?verdict():null;if(v&&v.ok)s+=80;s-=30*errN()+40*st.ffUsed+25*st.hints;s+=30*qRight();if(st.end&&v&&v.ok)s+=150+Math.max(0,300-Math.floor(elapsed()/3));return Math.max(0,s)}
+
+/* ---------- actions and labels ---------- */
+const LAB_USE={
+  mono:h=>h?tmsg(`Put down the ${IT(h).name} first.`):readMono(),
+  beak:h=>h==='jug'?fillBeaker():h?tmsg(`The ${IT(h).name} is not used on the beaker.`):tmsg(st.vol?`${st.vol} mL of water at ${st.medT.toFixed(1)} °C.`:'The beaker is empty. Bring the purified-water jug.'),
+  bask:h=>h==='tb'?loadTabs():h==='db'?addDiscs():h?tmsg(`Put down the ${IT(h).name} first.`):tmsg(st.run==='running'?'The basket is moving: watch through the beaker.':`Basket: ${st.tabs} tablets${st.discs?' with discs':''}.`),
+  test:h=>{if(h)return tmsg(`Put down the ${IT(h).name} first.`);if(AUTO){if(!st.heater)return heater();if(st.run==='idle')return startRun();if(st.run==='stopped'&&!st.cls)return openXP();return}if(st.run==='stopped'&&!st.cls)return openXP();openDP()},
+  therm:h=>h?tmsg(`Put down the ${IT(h).name} first.`):readTherm(),
+  book:()=>openResults(),
+};
+const LAB_LABEL={
+  mono:h=>h?'':st.readMono?'read':'read the specification',beak:h=>h==='jug'?(st.vol?'already filled':'fill with water'):h?'':st.vol?`${st.vol} mL · ${st.medT.toFixed(1)} °C`:'empty',
+  bask:h=>h==='tb'?(st.tabs?'loaded':'load 6 tablets'):h==='db'?(st.discs?'discs in':'add discs'):h?'':st.run==='running'?'running':`${st.tabs} tablets${st.discs?' + discs':''}`,
+  test:h=>h?'':st.run==='running'?`running · ${mmss(st.runT*60)}`:st.run==='stopped'?(st.cls?'finished':'examine the tubes'):`${st.bathT.toFixed(1)} °C · ${st.rate}/min`,
+  therm:h=>h?'':st.vol?`reads ${st.medT.toFixed(1)} °C`:'dry',book:()=>'results',
+};
+
+/* ---------- procedure and guidance ---------- */
+const tOK=()=>st.tRead!=null&&st.tRead>=35&&st.tRead<=39;
+const STEPS=[
+  {t:'Read the specification',d:'Check the method on the clipboard: medium, temperature, discs, number of tablets and operating time.',done:()=>st.readMono||st.vol>0},
+  {t:'Prepare the medium',d:'Fill the 1000 mL low-form beaker with water to the 900 mL mark: the mesh must stay at least 15 mm below the surface at the top of the stroke and at least 25 mm above the bottom at the lowest point.',done:()=>st.vol>0},
+  {t:'Bring it to 37 ± 2 °C',d:'Switch the heater on at the control unit. When the medium has warmed up, read the thermometer: it must show 35–39 °C.',done:()=>tOK()||!!st.cond},
+  {t:'Load the basket',d:'One tablet in each of the six tubes, then a disc on top of each tablet.',done:()=>(st.tabs===6&&st.discs)||!!st.cond},
+  {t:'Set the rate & start',d:'At the control unit set 30 cycles per minute and start: the basket lowers into the medium and moves up and down.',done:()=>!!st.cond},
+  {t:'Operate for 15 minutes',d:'Watch the tubes. Let the apparatus run the full 15 minutes; the timer stops it. Then lift the basket out of the medium.',done:()=>st.run==='stopped'},
+  {t:'Examine each tube',d:'Disintegrated: no residue on the mesh, or only a soft mass with no palpably firm core (fragments of insoluble coating are allowed). A firm core means it has not disintegrated.',done:()=>!!st.cls},
+  {t:'Decide',d:'All 6 → complies. 1 or 2 fail → test 12 more (≥ 16 of 18 must pass). 3 or more fail → does not comply.',done:()=>st.end},
+];
+function nextTarget(){const s=stepNow(),h=st.held,go=(k,t)=>h===k?t:h?homeId():k;
+  if(s===0)return h?homeId():'mono';if(s===1)return go('jug','beak');
+  if(s===2){if(h)return homeId();if(!st.heater)return'test';return st.medT>=35.5?'therm':null}
+  if(s===3)return st.tabs<6?go('tb','bask'):go('db','bask');
+  if(s===4)return h?homeId():'test';if(s===5)return h?homeId():st.runT>=LIMIT?'test':null;
+  if(s===6)return h?homeId():'test';if(s===7)return h?homeId():'book';return null}
+function hintFor(id){if(!id)return st.run==='running'?'Let it run the full 15 minutes; the timer stops the basket.':st.heater?'The medium is warming: wait for 35–39 °C.':'Finish the current action.';const h=st.held;
+  if(id===homeId())return`Put down the ${IT(h).name}.`;
+  return({mono:'Read the specification on the clipboard.',jug:'Pick up the purified-water jug.',beak:'Fill the beaker to the 900 mL mark.',test:st.run==='stopped'?'Examine the tubes.':st.run==='running'?'Stop and lift the basket.':!st.heater?'Switch the heater on.':'Set 30 cycles/min and start the test.',
+    therm:'Read the thermometer.',tb:'Pick up the tablet bottle.',db:'Pick up the disc box.',bask:h==='db'?'Add a disc to each tube.':'Load one tablet into each tube.',book:'Open the QC worksheet and apply the acceptance rule.'})[id]||''}
+
+/* ---------- questions ---------- */
+const QS=[
+  {id:'temp',tag:'Conditions',when:()=>tOK(),q:'Why is the medium held at 37 ± 2 °C?',o:['It matches body temperature, and disintegration is faster in warmer water','It sterilises the tablets','It stops the discs from floating','It is the boiling point of the medium'],e:'The test imitates conditions in the stomach. Cooler water slows the swelling and breakup of tablets, so results would be too slow.'},
+  {id:'vol',tag:'Apparatus',when:()=>st.vol>0,q:'How much medium goes in the beaker?',o:['Enough that the mesh stays at least 15 mm below the surface at the top of the stroke, while still at least 25 mm above the bottom at the lowest point','Exactly 500 mL','Just enough to cover the tablets at rest','As much as the beaker holds'],e:'If the mesh leaves the liquid at the top of each stroke, the tablets spend part of every cycle in air and disintegrate more slowly. The top of the basket-rack must never be submerged either.'},
+  {id:'disc',tag:'Apparatus',when:()=>st.discs,q:'What are the discs for?',o:['They keep the tablets submerged and add gentle mechanical action','They measure the time','They dissolve and release the drug','They stop the tubes from breaking'],e:'Some tablets float or stick to the mesh. The perforated plastic disc sits on each tablet, keeping it under the medium and pressing lightly as the basket moves.'},
+  {id:'rate',tag:'Apparatus',when:()=>!!st.cond,q:'Why must the basket move at 29–32 cycles per minute, over 55 ± 2 mm?',o:['Agitation affects how fast tablets break up; a fixed rate makes results comparable','A faster rate damages the motor','The timer only works at 30 cycles per minute','It keeps the water at 37 °C'],e:'Faster movement works the tablets harder and shortens the time; slower movement lengthens it. Fixed conditions make results comparable between labs.'},
+  {id:'def',tag:'Judging',when:()=>st.run==='stopped',q:'When does a tablet count as completely disintegrated?',o:['No residue remains on the mesh, or only a soft mass with no palpably firm core (fragments of insoluble coating allowed)','When it has dissolved completely','When it has broken into two pieces','When the disc touches the mesh'],e:'Insoluble fragments of coating may remain. A soft mass is acceptable, but a firm core means the tablet has not disintegrated.'},
+  {id:'diss',tag:'Interpretation',when:()=>!!st.cls,q:'Does passing the disintegration test show that the drug has dissolved?',o:['No: disintegration does not imply complete dissolution; dissolution is a separate test','Yes: disintegration and dissolution are the same','Yes, if it disintegrates in under 5 minutes','Only for coated tablets'],e:'A tablet can break up quickly yet release its drug slowly. Dissolution testing measures how much drug goes into solution over time; where a dissolution test is prescribed, the Ph. Eur. says a disintegration test may not be required.'},
+  {id:'stage',tag:'Acceptance',when:()=>!!st.cls,q:'At stage 1, one tablet of six fails. What next?',o:['Test 12 more; the batch complies if at least 16 of all 18 disintegrate','Reject the batch immediately','Release the batch: 5 of 6 is enough','Repeat the same 6 tablets'],e:'Pharmacopoeial rule: if 1 or 2 units fail, test 12 additional units. Not fewer than 16 of the total 18 must disintegrate.'},
+  {id:'limit',tag:'Specifications',when:()=>!!st.cls,q:'Which limit applies to film-coated tablets in the Ph. Eur.?',o:['30 minutes','15 minutes, like uncoated tablets','60 minutes','5 minutes'],e:'Uncoated tablets: 15 minutes. Film-coated tablets: 30 minutes. Gastro-resistant tablets are tested in acid first and must not disintegrate there.'},
+  {id:'why6',tag:'Sampling',when:()=>st.tabs===6,q:'Why test six tablets rather than one?',o:['Tablets vary; testing several shows how consistent the batch is','The basket needs to be balanced','One tablet would dissolve too fast','It shortens the test'],e:'Units differ slightly in hardness, porosity and composition. A sample of six, and twelve more if needed, shows how the batch behaves.'},
+];
+const BADGES=[
+  {id:'first',i:'💊',n:'First test',d:'Finish any shift'},
+  {id:'setup',i:'🧰',n:'Right set-up',d:'Volume, temperature, stroke rate and discs all correct',test:()=>st.cond&&!st.E.vol&&!st.E.temp&&!st.E.rate&&!st.E.disc&&st.ffUsed===0},
+  {id:'eye',i:'🔍',n:'Sharp eye',d:'Every tube judged correctly',test:()=>st.cls&&!st.E.misid},
+  {id:'time',i:'⏱️',n:'Full time',d:'Operated for the full 15 minutes',test:()=>st.obs&&!st.E.early&&!st.E.late},
+  {id:'qc',i:'✅',n:'QC analyst',d:'Correct decision following the stage rule, no skips',test:v=>v.ok&&!st.E.dec&&st.ffUsed===0},
+  {id:'quiz',i:'🎓',n:'Quiz master',d:'Answer all 9 questions right in one shift'},
+  {id:'exam',i:'📜',n:'Certified',d:'Pass the Exam'},
+  {id:'gold',i:'🏆',n:'Gold standard',d:'3 stars on the Exam'},
+];
+
+/* ---------- results tab, status, record, visuals, tick, buttons ---------- */
+function drawResults(){const k=s1Fails();let h='<table class="itab"><thead><tr><th>Tube</th><th>Your call</th></tr></thead><tbody>';
+  if(st.cls)st.cls.forEach((v,i)=>h+=`<tr><td>${i+1}</td><td>${v?'disintegrated ✓':'not disintegrated ✗'}</td></tr>`);else h+='<tr><td colspan="2">No run examined yet.</td></tr>';h+='</tbody></table>';
+  if(st.cls)h+=`<div style="font-size:12px;margin-top:6px">Stage 1: <b>${6-k} of 6</b> disintegrated within ${LIMIT} min (run stopped at ${st.stopT} min).${st.s2?` Stage 2: <b>${12-st.s2.fails} of 12</b>; total <b>${18-k-st.s2.fails} of 18</b>.`:''}</div>`;
+  $('itab').innerHTML=h;$('decS').hidden=!st.cls;['dCo','dNo'].forEach(i=>$(i).disabled=st.end||!st.cls);$('dS2').disabled=st.end||!st.cls||!!st.s2}
+function labPanels(){const r=(a,b,ok)=>`<span>${a}</span><span>${b}</span><span class="${ok?'ok':'no'}">${ok?'●':'○'}</span>`;
+  $('ins').innerHTML=r('Medium',st.vol?`${st.vol} mL water`:'empty',st.vol>=700)+r('Temperature',st.vol?`${st.medT.toFixed(1)} °C${st.tRead!=null?' · read '+st.tRead.toFixed(1):''}`:'—',st.medT>=35&&st.medT<=39)+r('Stroke rate',`${st.rate} cycles/min`,st.rate===30)+r('Heater',st.heater?'on':'off',st.heater);
+  $('tubes').innerHTML=r('Basket',`${st.tabs} tablets${st.discs?' + discs':''}`,st.tabs===6&&st.discs)+r('Run',st.run==='running'?mmss(st.runT*60)+' min':st.run==='stopped'?`stopped at ${st.stopT} min`:'not started',st.run!=='idle')}
+function labRecord(ok,info){if(st.cond){const c=st.cond;ok(c.vol>=700,`Medium: ${c.vol} mL water`);ok(c.T>=35&&c.T<=39,`Started at ${c.T} °C`);ok(c.rate===30,`Stroke rate ${c.rate} cycles/min`);ok(c.discs,c.discs?'Discs used':'No discs')}
+  if(st.obs)ok(!st.E.early&&!st.E.late,`Stopped at ${st.stopT} min (limit ${LIMIT})`);if(st.cls)ok(!st.E.misid,st.E.misid?`${st.E.misid} tube(s) judged wrongly`:'All six tubes judged correctly');
+  if(st.s2)info(`Stage 2: ${12-st.s2.fails} of 12 disintegrated`);if(st.end){const v=verdict();ok(v.ok,v.ok?'QC DECISION CORRECT.':'QC DECISION WRONG: '+v.why.join(', ')+'.')}}
+function syncVis(){medVis(st.vol);TUBES.forEach((T,i)=>{const s=tubeState(i);T.disc.visible=st.discs&&(s.k==='tab'||s.k==='core'||st.run!=='idle');T.soft.visible=s.k==='soft';T.tab.visible=s.k==='tab'||s.k==='core';
+  if(T.tab.visible){const q=s.k==='core'?Math.max(.3,1-s.p*.8):Math.max(.15,1-Math.pow(s.p,1.5)*.85);T.tab.scale.set(q,q,q)}});if(st.run!=='running'&&!an)bsk.position.copy(BK_UP)}
+let simK=1,dAcc=0;
+function labTick(dt,now){const m=dt*simK;     // simulated minutes: 1 real second = 1 minute
+  if(st.heater)st.bathT+=(37.1-st.bathT)*Math.min(1,m*.45);else st.bathT+=(ROOM-st.bathT)*Math.min(1,m*.05);
+  if(st.vol)st.medT+=(st.bathT-st.medT)*Math.min(1,m*.6);else st.medT=st.bathT;
+  if(st.run==='running'){if(st.runT<LIMIT){st.runT=Math.min(LIMIT,st.runT+m);if(!an)bsk.position.y=BK_MID.y+.0275*Math.sin(now*.006)}if(st.runT>=LIMIT&&!st.alarm){st.alarm=true;tmsg('⏰ Timer 15:00: the tester has stopped the basket at the time limit. Lift the basket and examine the tubes.')}}
+  dAcc+=dt;if(dAcc>.12){dAcc=0;drawDP();if(st.run==='running')syncVis()}}
+function labWire(){$('dpX').onclick=closeDP;$('dpH').onclick=heater;$('dpR').onclick=setRate;$('dpGo').onclick=startRun;$('dpStop').onclick=stopRun;$('xpX').onclick=closeXP;$('xpOk').onclick=confirmXP;
+  $('dCo').onclick=()=>decide(true);$('dNo').onclick=()=>decide(false);$('dS2').onclick=runStage2;
+  $('speed').onclick=()=>{const L=[.5,1,2];simK=L[(L.indexOf(simK)+1)%3];$('speed').textContent=`Sim speed: ${simK} min/s`}}
+
+/* =====================================================================
+   5. ENGINE: game systems. Normally you do not edit below this line.
+   It calls the LAB hooks defined in section 4 (newBatch, STEPS, QS,
+   BADGES, ITEMS, TARGETS, LAB_USE, LAB_LABEL, nextTarget, hintFor,
+   scoreNow, verdict, resultLines, causes, labPanels, labRecord,
+   syncVis, labWire, labTick, VIEWS, LAB).
+   ===================================================================== */
+let LV=0,selLV=0,hintUntil=0,asp=2,an=null,INST=false,AUTO=false;
+const tmsg=m=>{$('tmsg').innerHTML=m;$('mmsg').innerHTML=m;$('hmsg').innerHTML=m};
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const cap1=s=>s[0].toUpperCase()+s.slice(1),mmss=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+
+/* ---- warnings: Tutorial & Practice warn once before a slip; the Exam never warns ----
+   Pattern:  if(bad&&W('key')){wset('key');return tmsg('Why it is wrong. Do it again to carry on anyway.')}
+             wclr();if(bad)st.E.key++;   // the slip is recorded the second time       */
+const wset=k=>{if(st.warn&&st.warn!==k)(st.ack=st.ack||[]).push(st.warn);st.warn=k},wclr=()=>{st.warn='';st.ack=[]},W=k=>LV<2&&!AUTO&&st.warn!==k&&!(st.ack||[]).includes(k);
+const errN=()=>Object.values(st.E).reduce((a,b)=>a+b,0);
+
+/* ---- animation: run(duration, update(u,t), end) — tap/E again skips to the end ---- */
+const kf=(K,t)=>{let i=0;while(i<K.length-2&&t>K[i+1][0])i++;const a=K[i],b=K[i+1],u=sm((t-a[0])/(b[0]-a[0]));return[1,2,3,4].map(j=>lerp(a[j],b[j],u))};
+function run(dur,upd,end){if(INST){upd&&upd(1,dur);end&&end();return}an={t:0,dur,upd,end}}
+const busy=()=>{if(!an)return false;an.t=Math.max(an.t,an.dur);return true};
+const _v=new THREE.Vector3();function posA(o){o.getWorldPosition(_v);A.updateMatrixWorld();return A.worldToLocal(_v.clone())}
+/* screw cap off and back on: u 0→1 lifts it to awayA, 1→0 returns it */
+function capAt(cap,par,homeL,awayA,u,lift=.05){if(u<=0){if(cap.parent!==par)par.add(cap);cap.position.copy(homeL);cap.rotation.set(0,0,0);return}
+ const a=sm(u*2),b=sm(u*2-1),h=homeL.clone().add(par.position);if(cap.parent!==A)A.add(cap);cap.position.set(lerp(h.x,awayA.x,b),lerp(h.y+lift*a,awayA.y,b),lerp(h.z,awayA.z,b));cap.rotation.set(PI*b,-5*a,0)}
+
+/* ---- choices: a small dialog; in auto mode (Finish step) the option marked true is taken ---- */
+function showChoice(title,text,opts){if(AUTO){const o=opts.find(o=>o[2])||opts[0];return o[1]()}$('chT').textContent=title;$('chP').innerHTML=text;const box=$('chB');box.innerHTML='';
+ opts.forEach(([l,fn])=>{const b=document.createElement('button');b.innerHTML=l;b.onclick=()=>{$('choice').hidden=true;fn()};box.appendChild(b)});const c=document.createElement('button');c.textContent='Cancel';c.onclick=()=>{$('choice').hidden=true};box.appendChild(c);$('choice').hidden=false;unlock();setTimeout(()=>box.firstChild&&box.firstChild.focus(),40)}
+
+/* ---- carry & use: ITEMS can be picked up, held in front of the camera and put back home ---- */
+scene.add(cam);
+const IT=id=>ITEMS[id];
+function anchorPos(k){if(mode!=='fps')return IT(k).hov();cam.updateMatrixWorld();const w=cam.localToWorld(IT(k).off.clone());A.updateMatrixWorld();return A.worldToLocal(w)}
+function attachHand(){const k=st.held;if(!k)return;const I=IT(k),o=I.obj(),r=I.rot||[0,0,0];if(mode==='fps'){cam.add(o);o.position.copy(I.off);o.rotation.set(r[0],r[1],r[2])}else{A.add(o);o.position.copy(I.hov());o.rotation.set(0,0,0)}}
+function detach(){const k=st.held;if(!k)return;const o=IT(k).obj();if(o.parent!==A){const w=posA(o);A.add(o);o.position.copy(w)}o.rotation.set(0,0,0)}
+function placeHome(k){const I=IT(k),o=I.obj();A.add(o);o.rotation.set(0,0,0);o.position.copy(I.home());I.onHome&&I.onHome()}
+function pickUp(k){if(busy())return;if(st.held)return tmsg(`Put down the ${IT(k===st.held?k:st.held).name} first.`);const I=IT(k);if(I.canPick){const no=I.canPick();if(no)return tmsg(no)}
+ const o=I.obj();if(o.parent!==A){const w=posA(o);A.add(o);o.position.copy(w)}st.held=k;I.onPick&&I.onPick();const p0=o.position.clone(),a=anchorPos(k);o.rotation.set(0,0,0);
+ run(.6,(q,t)=>{const u=sm(t/.6),m=p0.clone().lerp(a,u);m.y+=Math.sin(u*PI)*.04;o.position.copy(m)},()=>{attachHand();tmsg(I.msg?I.msg():`${cap1(I.name)} in hand.`)})}
+function putDown(){if(busy())return;const k=st.held;if(!k)return tmsg('Your hands are empty.');detach();const I=IT(k),o=I.obj(),p0=o.position.clone(),h=I.home();
+ run(.6,(q,t)=>{o.position.lerpVectors(p0,h,sm(t/.6))},()=>{st.held=null;placeHome(k);syncVis();tmsg(`${cap1(I.name)} put down.`)})}
+/* move the held item along keyframes [[t,x,y,z,0],…] and back to the hand */
+function handRun(K,dur,upd,end){const k=st.held;detach();const o=IT(k).obj(),a=o.position.clone(),KK=[[0,a.x,a.y,a.z,0],...K,[dur,a.x,a.y,a.z,0]];
+ run(dur+.1,(q,t)=>{const p=kf(KK,Math.min(t,dur));o.position.set(p[0],p[1],p[2]);upd&&upd(t,p)},()=>{end&&end();attachHand()})}
+/* default behaviour of an item target: pick up / put down */
+function genericItem(id){const h=st.held;return h===id?putDown():h?tmsg(`Put down the ${IT(h).name} first.`):pickUp(id)}
+function homeId(){return st.held?st.held+'H':null}
+
+/* ---- one dispatcher for every target ---- */
+function useOn(id){const h=st.held;if(id.endsWith('H')&&ITEMS[id.slice(0,-1)]){const k=id.slice(0,-1);return h===k?putDown():tmsg(`That is where the ${IT(k).name} goes.`)}
+ if(LAB_USE[id])return LAB_USE[id](h);if(ITEMS[id])return genericItem(id)}
+function labelFor(id){const h=st.held;if(id.endsWith('H')&&ITEMS[id.slice(0,-1)])return'put down here';if(LAB_LABEL[id])return LAB_LABEL[id](h)||'';if(ITEMS[id])return h===id?'put down':h?'':'pick up';return''}
+
+/* ---- Finish step: plays the current step automatically (not in the Exam) ---- */
+function autoAct(){const t=nextTarget();if(!t)return LAB.autoWait?LAB.autoWait():false;useOn(t);return true}
+function ff(){if(LV===2)return tmsg('Finish step is turned off in the Exam.');if(an)return busy();const s0=stepNow();if(s0>=LAB.ffStop)return tmsg('Do this part yourself: it is what the shift is assessing.');
+ INST=true;AUTO=true;st.ffUsed++;let g=0;while(stepNow()===s0&&g++<60){if(!autoAct())break}INST=false;AUTO=false;tmsg('Step completed.')}
+const stepNow=()=>{for(let i=0;i<STEPS.length;i++)if(!STEPS[i].done())return i;return STEPS.length};
+
+/* ---- HUD, score, results screen ---- */
+const elapsed=()=>st.t0==null?0:((st.tEnd||performance.now())-st.t0)/1000;
+let lastSc=null,lastObj='',aimT=null,aimKey='';
+function toast(d){const t=$('toast');t.textContent=(d>0?'+':'−')+Math.abs(d);t.style.color=d>0?'#6fe0c5':'#ff8a65';t.classList.remove('go');void t.offsetWidth;t.classList.add('go')}
+function hudTick(){quizTick();$('stime').textContent=mmss(elapsed());const sc=scoreNow();$('spts').textContent=sc+' pts';if(lastSc!==null&&sc!==lastSc&&st.t0!=null)toast(sc-lastSc);lastSc=sc;
+ const n=STEPS.length,s=Math.min(stepNow(),n-1),o=`<b>Objective ${s+1}/${n} · ${STEPS[s].t}</b><span>${STEPS[s].d}</span>`;if(o!==lastObj){lastObj=o;$('ostep').innerHTML=o}
+ if(st.end&&!st.shown&&!an&&$('quiz').hidden){st.shown=true;setTimeout(showResult,600)}}
+const qRight=()=>Object.values(st.q).filter(Boolean).length;
+/* stars: 1 = wrong outcome, 2 = right outcome, 3 = right with no slips, skips or hints and ≥ 70% of questions right */
+function starsFor(v){if(!v.ok)return 1;return errN()===0&&st.ffUsed===0&&st.hints===0&&qRight()>=Math.ceil(QS.length*.7)?3:2}
+function showResult(){clearRun();LAB.closePanels&&LAB.closePanels();const v=verdict(),n=starsFor(v),sc=scoreNow(),tm=elapsed();
+ $('rTitle').textContent=(LV===2?(v.ok?'Exam passed':'Exam failed'):(v.ok?LAB.okTitle:LAB.badTitle))+' · '+LVL[LV].n;$('rStars').innerHTML='★'.repeat(n)+'<span>'+'★'.repeat(3-n)+'</span>';
+ const tips=[];if(errN())tips.push(`${errN()} technique slip(s)`);if(st.ffUsed)tips.push(`${st.ffUsed} skipped step(s)`);if(st.hints)tips.push(`${st.hints} hint(s)`);const c=causes();
+ $('rStats').innerHTML=`Score <b>${sc}</b> · Time <b>${mmss(tm)}</b> · Questions <b>${qRight()}/${QS.length}</b><br>${resultLines(v)}<br>`+
+  (v.ok?(n===3?'Clean run: no slips, no shortcuts, no hints.':'Correct. For 3 stars: '+(tips.length?'avoid '+tips.join(', '):'answer more questions right')+'.')+(c.length?' Watch out: '+c.join('; ')+'.':''):'Wrong because '+v.why.join(', ')+'.'+(c.length?' Causes: '+c.join('; ')+'.':''));
+ const nb=awardBadges(v,n,sc,tm);$('rBadges').innerHTML=nb.length?`<h2 style="margin-top:4px">New badge${nb.length>1?'s':''}</h2><div class="bdg">${nb.map(b=>`<div class="bd got new"><i>${b.i}</i>${b.n}</div>`).join('')}</div>`:'';
+ $('nextB').hidden=!(v.ok&&LV<2);if(LV<2)$('nextB').textContent='Next level: '+LVL[LV+1].n;$('result').hidden=false;unlock()}
+
+/* ---- aiming & interacting in first person ---- */
+const rc=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(x=0,y=0){cam.updateMatrixWorld();ndc.set(x,y);rc.setFromCamera(ndc,cam);rc.far=2.6;const h=rc.intersectObjects(HIT.filter(t=>!t.off).map(t=>t.m),false);return h.length?HIT.find(t=>t.m===h[0].object):null}
+function aimUpdate(){aimT=pick();const key=aimT?aimT.name+'|'+aimT.label():'';if(key===aimKey)return;aimKey=key;const pr=$('prompt');
+ if(aimT){const l=aimT.label();pr.innerHTML=`<kbd>${document.body.classList.contains('touch')?'Use':'E'}</kbd> ${aimT.name}${l?` · ${l}`:''}`;pr.style.display='block'}else pr.style.display='none';$('cross').classList.toggle('aim',!!aimT)}
+function interact(x,y){if(mode!=='fps'||modalOpen())return;if(an)return void busy();const t=x==null?pick():pick(x,y);if(!t)return tmsg('Nothing to use there. Aim the crosshair at a piece of equipment.');startClock();t.act()}
+
+/* ---- levels ---- */
+const LVL=[{n:'Tutorial',d:'Full guidance. A glowing marker and arrow show what to pick up or use next, formulas are shown, and a warning appears before any slip.'},
+ {n:'Practice',d:'No marker or highlighted buttons. Press H (or Hint) when stuck, at a cost of 25 points. Warnings still appear before a slip.'},
+ {n:'Exam',d:'No marker, hints, warnings or skipped steps. Formulas are hidden: you must know them. Timed and graded.'}];
+function applyLV(){LV=selLV;[0,1,2].forEach(i=>document.body.classList.toggle('lv'+i,i===LV));$('slv').textContent=LVL[LV].n;hintUntil=0;document.querySelectorAll('.fhint').forEach(e=>e.style.display=LV===2?'none':'')}
+function startLevel(m){applyLV();resetAll();$('intro').hidden=true;setMode(m);startClock();if(m==='fps')tryLock();showCH(m);tmsg(LV===0?LAB.startMsg:LV===1?'Practice: no marker. Press H if you get stuck.':'Exam: no help. Work carefully; the clock is running.')}
+function hint(){if(LV!==1||st.end)return;if(an)return busy();st.hints++;hintUntil=performance.now()+8000;tmsg('Hint: '+hintFor(nextTarget()))}
+
+/* ---- questions: each pops up once, the first time its when() becomes true ---- */
+let qCur=null;const sp=t=>t.replace(/\^(−?\d+)/g,'<sup>$1</sup>');
+function openQ(q){qCur=q;unlock();const r=rng(st.seed*31+q.id.charCodeAt(0)*7+(q.id.charCodeAt(1)||0)),ord=[0,1,2,3].sort(()=>r()-.5);
+ $('qTag').textContent=`Question ${Object.keys(st.q).length+1} of ${QS.length} · ${q.tag}`;$('qText').innerHTML=sp(q.q);$('qExp').innerHTML='';$('qGo').hidden=true;const box=$('qOpts');box.innerHTML='';
+ ord.forEach(i=>{const b=document.createElement('button');b.innerHTML=sp(q.o[i]);b.onclick=()=>{if(q.id in st.q)return;const ok=i===0;st.q[q.id]=ok;[...box.children].forEach((c,j)=>{c.disabled=true;if(ord[j]===0)c.classList.add('ok')});if(!ok)b.classList.add('bad');
+  $('qExp').innerHTML=`<b style="color:${ok?'#2fa36b':'var(--hot)'}">${ok?'Correct, +30 points.':'Not quite.'}</b>${sp(q.e)}`;$('qGo').hidden=false;$('qGo').focus()};box.appendChild(b)});
+ $('quiz').hidden=false;setTimeout(()=>box.firstChild&&box.firstChild.focus(),50)}
+function closeQ(){$('quiz').hidden=true;qCur=null;if(mode==='fps')tryLock()}
+function quizTick(){if(st.t0==null||an||modalOpen()||st.end||(LAB.quizBlocked&&LAB.quizBlocked()))return;const q=QS.find(q=>!(q.id in st.q)&&q.when());if(q)openQ(q)}
+
+/* ---- badges & progress: saved per student (Claude account when available, else this device) ---- */
+const PKEY=LAB.id+'-progress-v1';let PROG={best:{},badges:{},runs:0},progRef=null,progWhere='device';
+function mergeP(a,b){const o={best:{},badges:Object.assign({},a.badges||{},b.badges||{}),runs:Math.max(a.runs||0,b.runs||0)};
+ ['L0','L1','L2'].forEach(k=>{const x=a.best&&a.best[k],y=b.best&&b.best[k];o.best[k]=!x?(y||null):!y?x:(y.stars>x.stars||(y.stars===x.stars&&y.score>x.score))?y:x;if(!o.best[k])delete o.best[k]});return o}
+function loadLocal(){try{const j=JSON.parse(localStorage.getItem(PKEY)||'null');if(j)PROG=mergeP(PROG,j)}catch(e){}}
+function saveProg(){try{localStorage.setItem(PKEY,JSON.stringify(PROG))}catch(e){}if(progRef)progRef.set(JSON.parse(JSON.stringify(PROG))).catch(()=>{progRef=null;progWhere='device';renderMenu()})}
+/* Claude artifact runtime (db + user capabilities). On your own website, replace this with your backend. */
+async function initCloud(){try{if(!window.claude||!window.claude.use)return;const[db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);if(!db||!user)return;const id=await user.id();if(!id)return;let cw=null;try{cw=await user.can('data.write')}catch(e){}if(cw===false)return;
+ const ref=db.doc('data/users/'+id+'/progress'),snap=await ref.get();if(snap.exists)PROG=mergeP(PROG,snap.data()||{});progRef=ref;progWhere='account';try{localStorage.setItem(PKEY,JSON.stringify(PROG))}catch(e){}renderMenu()}catch(e){progRef=null}}
+function awardBadges(v,n,sc,tm){const nb=[],give=id=>{if(!PROG.badges[id]&&BADGES.some(b=>b.id===id)){PROG.badges[id]=true;nb.push(BADGES.find(b=>b.id===id))}};
+ give('first');if(qRight()===QS.length)give('quiz');if(LV===2&&v.ok)give('exam');if(LV===2&&n===3)give('gold');BADGES.forEach(b=>{if(b.test&&b.test(v,n))give(b.id)});
+ PROG.runs=(PROG.runs||0)+1;const k='L'+LV,b=PROG.best[k];if(!b||n>b.stars||(n===b.stars&&sc>b.score))PROG.best[k]={stars:n,score:sc,time:Math.round(tm)};saveProg();renderMenu();return nb}
+function renderMenu(){$('lvls').innerHTML=LVL.map((l,i)=>{const b=PROG.best['L'+i],n=b?b.stars:0;return `<button class="lvl${i===selLV?' on':''}" role="radio" aria-checked="${i===selLV}" data-l="${i}"><b>${i+1}. ${l.n}</b><span class="st">${'★'.repeat(n)}<i>${'★'.repeat(3-n)}</i></span><small>${b?`Best ${b.score} pts · ${mmss(b.time)}`:'Not played yet'}</small></button>`}).join('');
+ document.querySelectorAll('#lvls .lvl').forEach(b=>b.onclick=()=>{selLV=+b.dataset.l;renderMenu()});$('lvDesc').textContent=LVL[selLV].d;
+ $('badges').innerHTML=BADGES.map(b=>`<div class="bd${PROG.badges[b.id]?' got':''}" title="${b.d}"><i>${b.i}</i>${b.n}</div>`).join('');
+ const got=BADGES.filter(b=>PROG.badges[b.id]).length;$('pWhere').textContent=`${got} of ${BADGES.length} badges · ${PROG.runs||0} shift${PROG.runs===1?'':'s'} played · progress saved ${progWhere==='account'?'to your Claude account':'on this device'}`;menuResume()}
+function showMenu(){$('result').hidden=true;$('quiz').hidden=true;qCur=null;$('intro').hidden=false;renderMenu();unlock()}
+function modalOpen(){return!$('intro').hidden||!$('quiz').hidden||!$('result').hidden||!$('choice').hidden}
+function startClock(){if(st.t0==null)st.t0=performance.now()}
+function toggleNB(){if(mode!=='fps')return;document.body.classList.toggle('nb');if(document.body.classList.contains('nb'))unlock()}
+function setMode(m){mode=m;document.body.classList.toggle('fps',m==='fps');$('modeB').innerHTML='Classic<span class="lg"> view</span>';$('modeB').hidden=false;cam.rotation.order='YXZ';if(m==='orbit'){unlock();document.body.classList.remove('nb');cam.fov=40;cam.updateProjectionMatrix();setView(vi)}else{cam.fov=62;cam.updateProjectionMatrix();zoom=false}if(st.held)attachHand();aimKey='~'}
+
+/* ---- autosave & resume an unfinished shift (this device, 7 days) ---- */
+const RKEY=LAB.id+'-run-v1',RM=matchMedia('(prefers-reduced-motion: reduce)').matches;let saveAcc=0,chUntil=0;
+function saveRun(){try{if(st.t0==null||st.end||an||modalOpen())return;const s={};for(const k in st)if(!['t0','tEnd','shown'].includes(k))s[k]=st[k];
+ localStorage.setItem(RKEY,JSON.stringify({v:1,LV,mode,el:elapsed(),step:Math.min(stepNow(),STEPS.length-1),st:s,at:Date.now()}))}catch(e){}}
+function clearRun(){try{localStorage.removeItem(RKEY)}catch(e){}}
+function getSaved(){try{const j=JSON.parse(localStorage.getItem(RKEY)||'null');return j&&j.v===1&&Date.now()-j.at<7*864e5?j:null}catch(e){return null}}
+function resumeRun(){const j=getSaved();if(!j)return;selLV=j.LV;applyLV();resetAll();Object.assign(st,JSON.parse(JSON.stringify(j.st)));const h=st.held;if(h){st.held=null;placeHome(h)}syncVis();$('intro').hidden=true;setMode(j.mode);
+ st.t0=performance.now()-j.el*1000;lastSc=null;if(j.mode==='fps')tryLock();showCH(j.mode);tmsg('Shift resumed where you left off.')}
+function menuResume(){const j=getSaved();$('resumeB').hidden=!j;$('startB').classList.toggle('cta',!j);$('startB').textContent=j?'Start a new shift':'Start shift';if(j)$('resumeB').textContent=`Resume ${LVL[j.LV].n} · step ${j.step+1} of ${STEPS.length} · ${mmss(j.el)}`}
+addEventListener('visibilitychange',()=>{if(document.hidden)saveRun()});addEventListener('pagehide',saveRun);
+
+/* ---- controls hint (first 3 shifts) and the edge arrow pointing at the marker ---- */
+function showCH(m){const c=$('chint');if(m!=='fps'||(PROG.runs||0)>=3){c.classList.remove('show');return}
+ c.innerHTML=document.body.classList.contains('touch')?'<b>Left stick</b> walk · <b>drag</b> to look · <b>tap</b> equipment to pick up or use it<br>Tap again during an animation to skip it':'<b>Click</b> the bench to look around · <b>W A S D</b> walk · <b>E</b> pick up / use · <b>Q</b> put down · <b>Tab</b> notebook<br>Press <b>E</b> during an animation to skip it';
+ c.classList.add('show');chUntil=performance.now()+11000}
+function chTick(now){if(chUntil&&now>chUntil){chUntil=0;$('chint').classList.remove('show')}}
+const _w=new THREE.Vector3();
+function arrowTick(){const a=$('oarr');if(mode!=='fps'||!beacon.visible||modalOpen()){if(a.style.display!=='none')a.style.display='none';return}
+ beacon.getWorldPosition(_w);_w.project(cam);let x=_w.x,y=_w.y;const behind=_w.z>1;if(behind){x=-x;y=-y;if(Math.abs(x)<.02&&Math.abs(y)<.02)y=-1}
+ if(!behind&&Math.abs(x)<.9&&Math.abs(y)<.85){if(a.style.display!=='none')a.style.display='none';return}
+ const m=Math.max(Math.abs(x)/.88,Math.abs(y)/.78,1e-6);x/=m;y/=m;const r=$('hud').getBoundingClientRect();
+ a.style.display='block';a.style.left=((x+1)/2*r.width)+'px';a.style.top=((1-y)/2*r.height)+'px';a.style.transform=`translate(-50%,-50%) rotate(${-Math.atan2(y,x)}rad)`}
+
+/* ---- procedure list, tabs, lab-record list ---- */
+let cache='',cc2='';
+const mob=matchMedia('(max-width:760px) and (orientation:portrait),(max-height:540px) and (orientation:landscape)');
+function renderSteps(){const step=stepNow(),n=STEPS.length,h=STEPS.map((s,i)=>`<li class="${i<step?'done':i===step?'cur':''}">${i<step?'✓ ':''}${s.t}${i===step?`<span>${s.d}</span>`:''}</li>`).join('');if(h!==cache){cache=h;$('olist').innerHTML=h}
+ $('bnext').classList.toggle('cta',LV===0&&!!nextTarget());$('bres').classList.toggle('cta',LV===0&&step>=LAB.ffStop&&step<n);$('mstep').innerHTML=step>=n?'Shift complete':`Step ${step+1} of ${n} · ${STEPS[step].t}`}
+function setTab(t){['steps','status','cnt'].forEach(x=>document.body.classList.toggle('tab-'+x,x===t));document.querySelectorAll('#tabs button').forEach(b=>{b.classList.toggle('on',b.dataset.t===t);b.setAttribute('aria-selected',b.dataset.t===t)});if(t==='cnt'){document.body.classList.add('cnt');drawResults()}}
+function openResults(){LAB.closePanels&&LAB.closePanels();document.body.classList.add('cnt');setTab('cnt');if(mob.matches)document.body.classList.add('nb');unlock();drawResults()}
+function comp(){const R=[];labRecord((c,t)=>R.push([c,t]),t=>R.push([null,t]));
+ const out=R.map(r=>`<div style="color:${r[0]===null?'var(--mut)':r[0]?'var(--acc)':'var(--hot)'}">${r[0]===null?'○':r[0]?'✓':'✗'} ${r[1]}</div>`).join('');if(out!==cc2){cc2=out;$('comp').innerHTML=out;$('comp2').innerHTML=out}}
+function panels(){hudTick();const hb=$('hbar'),h=st.held;if(h){hb.hidden=false;$('heldT').textContent=IT(h).held?IT(h).held():cap1(IT(h).name)}else hb.hidden=true;labPanels()}
+
+/* ---- classic (overview) camera ---- */
+let vi=0,th=0,ph2=1.2,rad=3.6,gth=0,gph=1.2,grad=3.6;const tgt=V(0,1.12,-1.75),gt=V(0,1.12,-1.75);
+function setView(i){vi=i;const v=VIEWS[i];$('view').textContent='View: '+v[0];gth=v[1];gph=v[2];grad=v[3];gt.set(v[4],v[5],v[6])}
+
+/* ---- reset ---- */
+function resetAll(){an=null;INST=false;AUTO=false;if(st.held)A.add(IT(st.held).obj());newBatch((st.seed||0)+1);document.body.classList.remove('cnt','weighing');setTab('steps');$('choice').hidden=true;LAB.closePanels&&LAB.closePanels();
+ Object.keys(ITEMS).forEach(placeHome);syncVis();P.forEach(p=>p.on=0);LAB.onReset&&LAB.onReset();setView(0);$('result').hidden=true;lastSc=null;Object.assign(PLY,LAB.player);document.body.classList.remove('nb')}
+
+/* ---- brightness: Dim / Normal / Bright, remembered on this device ---- */
+const LIT=[{n:'Dim',x:.62,k:.6,h:.32},{n:'Normal',x:.8,k:.8,h:.42},{n:'Bright',x:1.0,k:1.0,h:.52}];let litLv=1;
+function setLight(l){litLv=l;const L=LIT[l];renderer.toneMappingExposure=L.x;key.intensity=L.k;hemi.intensity=L.h;$('litB').textContent='Light: '+L.n;document.querySelectorAll('.lit button').forEach(b=>{const on=+b.dataset.l===l;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});try{localStorage.setItem('lab-light',String(l))}catch(e){}}
+try{const v=localStorage.getItem('lab-light');if(v!=null&&LIT[+v])litLv=+v}catch(e){}
+
+/* ---- buttons ---- */
+function wire(){document.title=LAB.title;$('iT').textContent=LAB.title;$('iP').innerHTML=LAB.intro;$('sT').textContent=LAB.title;$('sL').innerHTML=LAB.lead;
+ document.querySelectorAll('.lit button').forEach(b=>b.onclick=()=>setLight(+b.dataset.l));$('litB').onclick=()=>setLight((litLv+1)%3);setLight(litLv);
+ if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('touch');addEventListener('touchstart',()=>document.body.classList.add('touch'),{once:true,passive:true});
+ const setMob=()=>document.body.classList.toggle('mob',mob.matches);mob.addEventListener?mob.addEventListener('change',setMob):mob.addListener(setMob);setMob();
+ $('resumeB').onclick=resumeRun;$('startB').onclick=()=>startLevel('fps');$('classicB').onclick=()=>startLevel('orbit');$('qGo').onclick=closeQ;$('hintB').onclick=hint;$('hintC').onclick=hint;$('menuB').onclick=showMenu;$('nextB').onclick=()=>{selLV=Math.min(2,LV+1);startLevel(mode)};$('fpB').onclick=()=>{setMode('fps');startClock()};$('modeB').onclick=()=>setMode('orbit');$('nbB').onclick=toggleNB;$('mbar').onclick=()=>{if(mode==='fps'&&mob.matches&&!document.body.classList.contains('nb'))toggleNB()};
+ $('againB').onclick=()=>{selLV=LV;startLevel(mode)};$('reviewB').onclick=()=>{$('result').hidden=true;if(document.body.classList.contains('mob')){setTab('cnt');document.body.classList.add('nb')}else if(mode==='fps')document.body.classList.add('nb')};
+ $('useB').onclick=()=>interact();$('zoomB').onclick=()=>{zoom=!zoom;$('zoomB').classList.toggle('on',zoom)};$('dropB').onclick=()=>putDown();
+ const jy=$('joy'),kn=$('knob');let jid=null;const jm=e=>{const r=jy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),m=r.width/2-12,l=Math.min(1,Math.hypot(dx,dy)/m),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*l;joy.y=Math.sin(a)*l;kn.style.transform=`translate(${joy.x*m}px,${joy.y*m}px)`};
+ jy.addEventListener('pointerdown',e=>{jid=e.pointerId;jy.setPointerCapture(e.pointerId);jm(e)});jy.addEventListener('pointermove',e=>{if(e.pointerId===jid)jm(e)});const je=e=>{if(e.pointerId!==jid)return;jid=null;joy.x=joy.y=0;kn.style.transform=''};jy.addEventListener('pointerup',je);jy.addEventListener('pointercancel',je);
+ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+ $('bnext').onclick=()=>{startClock();if(an)return busy();const t=nextTarget();if(!t)return tmsg('Nothing to do right now.');useOn(t)};$('bres').onclick=()=>{startClock();openResults()};$('ff').onclick=()=>{startClock();ff()};
+ $('view').onclick=()=>setView((vi+1)%VIEWS.length);$('reset').onclick=()=>{resetAll();tmsg('Bench reset.')};labWire()}
+
+/* ---- first-person controls (mouse look, WASD, tap to use) and classic orbit view ---- */
+const cv=$('scene'),ptr=new Map();let pd0=0;
+const PLY={x:-.2,z:-.5,yaw:0,pitch:-.45},EYE=1.55,keys={},joy={x:0,y:0};let mode='orbit',locked=false,zoom=false,bob=0,lockFail=false;
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;document.body.classList.toggle('locked',locked)});document.addEventListener('pointerlockerror',()=>{lockFail=true});
+function tryLock(){if(mode!=='fps'||document.body.classList.contains('touch')||lockFail||locked||!cv.requestPointerLock)return;try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{lockFail=true})}catch(e){lockFail=true}setTimeout(()=>{if(!locked&&mode==='fps')lockFail=true},600)}
+function unlock(){if(locked&&document.exitPointerLock)document.exitPointerLock()}
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
+ if(k==='tab'||(k==='n'&&mode==='fps')){if(mode==='fps'){e.preventDefault();toggleNB()}return}if(mode!=='fps'||modalOpen())return;
+ if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();if(!keys[k]){if(k==='e')interact();if(k==='h')hint();if(k==='q')putDown();LAB.key&&LAB.key(k)}keys[k]=true;if(k==='z')zoom=true});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=false;if(k==='z')zoom=false});addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+document.addEventListener('mousemove',e=>{if(mode==='fps'&&locked){PLY.yaw-=e.movementX*.0022;PLY.pitch=cl(PLY.pitch-e.movementY*.0022,-1.35,.9)}});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{if(mode==='fps'&&e.button===2){zoom=true;return}cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,t0:performance.now()});if(ptr.size===2){const[a,b]=[...ptr.values()];pd0=Math.hypot(a.x-b.x,a.y-b.y)}});
+cv.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;
+ if(mode==='fps'){if(!locked){PLY.yaw-=(e.clientX-p.x)*.005;PLY.pitch=cl(PLY.pitch-(e.clientY-p.y)*.005,-1.35,.9)}p.x=e.clientX;p.y=e.clientY;return}
+ if(ptr.size===2){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptr.values()],d=Math.hypot(a.x-b.x,a.y-b.y);grad=cl(grad*pd0/d,.3,5);pd0=d;return}
+ gth=cl(gth-(e.clientX-p.x)*.005,-1.5,1.5);gph=cl(gph-(e.clientY-p.y)*.005,.35,1.5);p.x=e.clientX;p.y=e.clientY});
+const up=e=>{if(e.button===2){zoom=false;return}const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(!p||e.type==='pointercancel')return;if(Math.hypot(e.clientX-p.x0,e.clientY-p.y0)>8||performance.now()-p.t0>400)return;
+ if(mode!=='fps')return;if(locked)return interact();if(!document.body.classList.contains('touch')&&!lockFail)return tryLock();const r=cv.getBoundingClientRect();interact((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1)};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('wheel',e=>{e.preventDefault();if(mode==='orbit')grad=cl(grad*(1+e.deltaY*.001),.3,5)},{passive:false});
+
+function resize(){const el=$('scene'),w=el.clientWidth||innerWidth,h=el.clientHeight||innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+
+addEventListener('resize',resize);if(window.ResizeObserver)new ResizeObserver(resize).observe($('scene'));resize();
+
+/* ---- interactive targets: invisible boxes the crosshair / tap ray hits ---- */
+const hitM=new THREE.MeshBasicMaterial({visible:false}),HIT=[],T={};
+function hit(id,name,c,sz){const m=new THREE.Mesh(new THREE.BoxGeometry(sz[0],sz[1],sz[2]),hitM);m.position.set(c[0],c[1],c[2]);A.add(m);const t={id,name,m,h:sz[1],act:()=>useOn(id),label:()=>labelFor(id)};HIT.push(t);T[id]=t;return t}
+TARGETS.forEach(t=>hit(t.id,t.name,t.pos,t.size));
+Object.entries(ITEMS).forEach(([id,I])=>{const p=I.home();hit(id,cap1(I.name),[p.x,p.y+I.hit[1]/2,p.z],I.hit);hit(id+'H',cap1(I.name)+' spot',[p.x,p.y+.01,p.z],[I.hit[0]*1.3,.02,I.hit[2]*1.3])});
+/* the glowing marker above the next target (Tutorial, or Practice while a hint is showing) */
+const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.016),new THREE.MeshBasicMaterial({color:0x6fe0c5,transparent:true,opacity:.92,depthTest:false}));beacon.renderOrder=20;A.add(beacon);
+function hitSync(){const h=st.held;Object.entries(ITEMS).forEach(([id,I])=>{const t=T[id];t.off=h===id||!!(I.hidden&&I.hidden());T[id+'H'].off=h!==id;if(!t.off){const o=I.obj();t.m.position.set(o.position.x,o.position.y+I.hit[1]/2,o.position.z)}});LAB.hitSync&&LAB.hitSync()}
+
+/* ---- main loop ---- */
+let last=performance.now(),acc=0;
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+ fAcc+=dt;fN++;if(fN===45){const fps=fN/fAcc;fN=0;fAcc=0;if(fps<38){if(pr>1){pr=Math.max(1,pr-.25);renderer.setPixelRatio(pr);resize()}else if(shInt<8)shInt=8}}
+ if(++fc%shInt===0)renderer.shadowMap.needsUpdate=true;
+ labTick(dt,now);
+ if(an){an.t+=dt*asp;an.upd&&an.upd(an.t/an.dur,an.t);if(an.t>=an.dur){const e=an.end;an=null;e&&e()}}
+ acc+=dt;if(acc>.15){acc=0;renderSteps();comp();panels()}
+ hitSync();
+ {const tid=mode==='fps'||LV===0?nextTarget():null,t=tid?T[tid]:null;beacon.visible=!!t&&!t.off&&!an&&!st.end&&!modalOpen()&&(LV===0||performance.now()<hintUntil);if(t){beacon.position.set(t.m.position.x,t.m.position.y+t.h/2+.06+.012*Math.sin(now*.004),t.m.position.z);beacon.rotation.y+=dt*2}}
+ if(mode==='fps'){const f=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0)-joy.y,sd=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joy.x,l=Math.hypot(f,sd);
+  if(l>.05&&!modalOpen()){const n=Math.min(1,l),fx=f/l*n,sx=sd/l*n,sy=Math.sin(PLY.yaw),cy=Math.cos(PLY.yaw),v=(keys.shift?2.4:1.3)*dt;PLY.x=cl(PLY.x+(-sy*fx+cy*sx)*v,-1.9,2.75);PLY.z=cl(PLY.z+(-cy*fx-sy*sx)*v,-.88,1.8);bob+=dt*9*n}
+  cam.position.set(PLY.x,EYE+(RM?0:Math.sin(bob)*.01),PLY.z);cam.rotation.set(PLY.pitch,PLY.yaw,0);const fv=zoom?26:62;if(Math.abs(cam.fov-fv)>.05){cam.fov+=(fv-cam.fov)*Math.min(1,dt*8);cam.updateProjectionMatrix()}aimUpdate()}
+ else{const k=Math.min(1,dt*5);th+=(gth-th)*k;ph2+=(gph-ph2)*k;rad+=(grad-rad)*k;tgt.lerp(gt,k);
+ const sp=Math.sin(ph2),R2=rad*(cam.aspect<1.45?Math.min(2.3,1.45/cam.aspect):1);cam.position.set(tgt.x+R2*sp*Math.sin(th),tgt.y+R2*Math.cos(ph2),tgt.z+R2*sp*Math.cos(th));cam.lookAt(tgt)}
+ arrowTick();chTick(now);saveAcc+=dt;if(saveAcc>2){saveAcc=0;saveRun()}stepP(dt);renderer.render(scene,cam);requestAnimationFrame(loop)}
+
+/* ---- boot ---- */
+cam.rotation.order='YXZ';wire();loadLocal();applyLV();resetAll();setMode('orbit');renderMenu();initCloud();tmsg(LAB.startMsg);requestAnimationFrame(loop);
+</script>
+
+</body></html>
